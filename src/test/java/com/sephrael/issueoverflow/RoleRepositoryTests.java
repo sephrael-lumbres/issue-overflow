@@ -2,6 +2,7 @@ package com.sephrael.issueoverflow;
 
 import com.sephrael.issueoverflow.entity.Role;
 import com.sephrael.issueoverflow.repository.RoleRepository;
+import com.sephrael.issueoverflow.support.PostgresTestBase;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -15,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Rollback(value = false)
-public class RoleRepositoryTests {
+public class RoleRepositoryTests extends PostgresTestBase {
 
     @Autowired
     private RoleRepository roleRepository;

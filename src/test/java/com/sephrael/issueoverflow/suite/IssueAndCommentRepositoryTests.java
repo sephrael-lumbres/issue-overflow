@@ -4,6 +4,7 @@ import com.sephrael.issueoverflow.entity.Comment;
 import com.sephrael.issueoverflow.entity.Issue;
 import com.sephrael.issueoverflow.repository.CommentRepository;
 import com.sephrael.issueoverflow.repository.IssueRepository;
+import com.sephrael.issueoverflow.support.PostgresTestBase;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -22,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Rollback(value = false)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class IssueAndCommentRepositoryTests {
+public class IssueAndCommentRepositoryTests extends PostgresTestBase {
 
     @Autowired
     private TestEntityManager entityManager;
@@ -79,7 +80,7 @@ public class IssueAndCommentRepositoryTests {
     @Order(5)
     public void testCreateComment() {
         Comment comment = new Comment();
-        comment.setMessage("Just get good, you're garbage kid");
+        comment.setMessage("Please add steps to reproduce");
 
         Comment savedComment = commentRepository.save(comment);
 
@@ -91,8 +92,8 @@ public class IssueAndCommentRepositoryTests {
     @Test
     @Order(6)
     public void testFindCommentByMessage() {
-        Comment comment = commentRepository.findCommentByMessage("Just get good, you're garbage kid");
-        assertThat(comment.getMessage()).isEqualTo("Just get good, you're garbage kid");
+        Comment comment = commentRepository.findCommentByMessage("Please add steps to reproduce");
+        assertThat(comment.getMessage()).isEqualTo("Please add steps to reproduce");
     }
 
     @Test
@@ -105,12 +106,12 @@ public class IssueAndCommentRepositoryTests {
     @Test
     @Order(8)
     public void testUpdateComment() {
-        Comment comment = commentRepository.findCommentByMessage("Just get good, you're garbage kid");
+        Comment comment = commentRepository.findCommentByMessage("Please add steps to reproduce");
         comment.setIsEdited(true);
 
         commentRepository.save(comment);
 
-        Comment updatedComment = commentRepository.findCommentByMessage("Just get good, you're garbage kid");
+        Comment updatedComment = commentRepository.findCommentByMessage("Please add steps to reproduce");
 
         assertThat(updatedComment.isEdited()).isEqualTo(true);
     }
@@ -119,12 +120,12 @@ public class IssueAndCommentRepositoryTests {
     @Order(9)
     public void testAddCommentToIssue() {
         Issue issue = issueRepository.findIssueByTitle("Headshot Not Working Properly");
-        Comment comment = commentRepository.findCommentByMessage("Just get good, you're garbage kid");
+        Comment comment = commentRepository.findCommentByMessage("Please add steps to reproduce");
 
         comment.setIssue(issue);
         commentRepository.save(comment);
 
-        Comment commentWithIssue = commentRepository.findCommentByMessage("Just get good, you're garbage kid");
+        Comment commentWithIssue = commentRepository.findCommentByMessage("Please add steps to reproduce");
 
         assertThat(commentWithIssue.getIssue().getTitle()).isEqualTo("Headshot Not Working Properly");
     }
@@ -144,7 +145,7 @@ public class IssueAndCommentRepositoryTests {
     @Test
     @Order(11)
     public void testCommentIsAlsoDeletedWhenParentIssueHasBeenDeleted() {
-        Comment deletedComment = commentRepository.findCommentByMessage("Just get good, you're garbage kid");
+        Comment deletedComment = commentRepository.findCommentByMessage("Please add steps to reproduce");
 
         assertThat(deletedComment).isNull();
     }

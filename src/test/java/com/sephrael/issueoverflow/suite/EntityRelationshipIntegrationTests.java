@@ -2,6 +2,7 @@ package com.sephrael.issueoverflow.suite;
 
 import com.sephrael.issueoverflow.entity.*;
 import com.sephrael.issueoverflow.repository.*;
+import com.sephrael.issueoverflow.support.PostgresTestBase;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -18,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Rollback(value = false)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class EntityRelationshipIntegrationTests {
+public class EntityRelationshipIntegrationTests extends PostgresTestBase {
 
     @Autowired
     private TestEntityManager entityManager;
@@ -42,8 +43,8 @@ public class EntityRelationshipIntegrationTests {
     @Order(1)
     public void testCreateUser() {
         User user = new User();
-        user.setEmail("ravikumar@gmail.com");
-        user.setPassword("ravi2020");
+        user.setEmail("user1@example.com");
+        user.setPassword("test-password-1");
         user.setFirstName("Ravi");
         user.setLastName("Kumar");
 
@@ -105,7 +106,7 @@ public class EntityRelationshipIntegrationTests {
     @Order(5)
     public void testCreateComment() {
         Comment comment = new Comment();
-        comment.setMessage("The Carver is a dumbass");
+        comment.setMessage("The Carver should double-check before merging");
 
         Comment savedComment = commentRepository.save(comment);
 
@@ -117,12 +118,12 @@ public class EntityRelationshipIntegrationTests {
     @Test
     @Order(6)
     public void testUserToOrganizationConnection() {
-        User user = userRepository.findByEmail("ravikumar@gmail.com");
+        User user = userRepository.findByEmail("user1@example.com");
         user.setOrganization(organizationRepository.findByAccessKey("PP"));
 
         userRepository.save(user);
 
-        User userWithOrganization = userRepository.findByEmail("ravikumar@gmail.com");
+        User userWithOrganization = userRepository.findByEmail("user1@example.com");
 
         assertThat(userWithOrganization.getOrganization().getName()).isEqualTo("Pied Piper");
     }
@@ -146,14 +147,14 @@ public class EntityRelationshipIntegrationTests {
     public void testUserToProjectConnection() {
         Project project = projectRepository.findByIdentifierAndOrganization("SV",
                 organizationRepository.findByAccessKey("PP"));
-        project.addUser(userRepository.findByEmail("ravikumar@gmail.com"));
+        project.addUser(userRepository.findByEmail("user1@example.com"));
 
         projectRepository.save(project);
 
         Project projectWithUser = projectRepository.findByIdentifierAndOrganization("SV",
                 organizationRepository.findByAccessKey("PP"));
 
-        assertThat(projectWithUser.getUsers().get(0).getEmail()).isEqualTo("ravikumar@gmail.com");
+        assertThat(projectWithUser.getUsers().get(0).getEmail()).isEqualTo("user1@example.com");
     }
 
     @Test
@@ -174,37 +175,37 @@ public class EntityRelationshipIntegrationTests {
     @Order(10)
     public void testUserToIssueConnection() {
         Issue issue = issueRepository.findIssueByTitle("Data Schema Overwritten");
-        issue.setUser(userRepository.findByEmail("ravikumar@gmail.com"));
+        issue.setUser(userRepository.findByEmail("user1@example.com"));
 
         issueRepository.save(issue);
 
         Issue issueWithUser = issueRepository.findIssueByTitle("Data Schema Overwritten");
 
-        assertThat(issueWithUser.getUser().getEmail()).isEqualTo("ravikumar@gmail.com");
+        assertThat(issueWithUser.getUser().getEmail()).isEqualTo("user1@example.com");
     }
 
     @Test
     @Order(11)
     public void testUserToCommentConnection() {
-        Comment comment = commentRepository.findCommentByMessage("The Carver is a dumbass");
-        comment.setUser(userRepository.findByEmail("ravikumar@gmail.com"));
+        Comment comment = commentRepository.findCommentByMessage("The Carver should double-check before merging");
+        comment.setUser(userRepository.findByEmail("user1@example.com"));
 
         commentRepository.save(comment);
 
-        Comment commentWithUser = commentRepository.findCommentByMessage("The Carver is a dumbass");
+        Comment commentWithUser = commentRepository.findCommentByMessage("The Carver should double-check before merging");
 
-        assertThat(commentWithUser.getUser().getEmail()).isEqualTo("ravikumar@gmail.com");
+        assertThat(commentWithUser.getUser().getEmail()).isEqualTo("user1@example.com");
     }
 
     @Test
     @Order(12)
     public void testIssueToCommentConnection() {
-        Comment comment = commentRepository.findCommentByMessage("The Carver is a dumbass");
+        Comment comment = commentRepository.findCommentByMessage("The Carver should double-check before merging");
         comment.setIssue(issueRepository.findIssueByTitle("Data Schema Overwritten"));
 
         commentRepository.save(comment);
 
-        Comment commentWithIssue = commentRepository.findCommentByMessage("The Carver is a dumbass");
+        Comment commentWithIssue = commentRepository.findCommentByMessage("The Carver should double-check before merging");
 
         assertThat(commentWithIssue.getIssue().getTitle()).isEqualTo("Data Schema Overwritten");
     }
@@ -212,11 +213,11 @@ public class EntityRelationshipIntegrationTests {
     @Test
     @Order(13)
     public void testDeleteComment() {
-        Comment comment = commentRepository.findCommentByMessage("The Carver is a dumbass");
+        Comment comment = commentRepository.findCommentByMessage("The Carver should double-check before merging");
 
         commentRepository.deleteById(comment.getId());
 
-        Comment deletedComment = commentRepository.findCommentByMessage("The Carver is a dumbass");
+        Comment deletedComment = commentRepository.findCommentByMessage("The Carver should double-check before merging");
 
         assertThat(deletedComment).isNull();
     }
@@ -250,11 +251,11 @@ public class EntityRelationshipIntegrationTests {
     @Test
     @Order(16)
     public void testDeleteUser() {
-        User user = userRepository.findByEmail("ravikumar@gmail.com");
+        User user = userRepository.findByEmail("user1@example.com");
 
         userRepository.deleteById(user.getId());
 
-        User deletedUser = userRepository.findByEmail("ravikumar@gmail.com");
+        User deletedUser = userRepository.findByEmail("user1@example.com");
 
         assertThat(deletedUser).isNull();
     }
