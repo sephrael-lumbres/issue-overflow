@@ -2,6 +2,7 @@ package com.sephrael.issueoverflow.suite;
 
 import com.sephrael.issueoverflow.entity.Organization;
 import com.sephrael.issueoverflow.repository.OrganizationRepository;
+import com.sephrael.issueoverflow.support.PostgresTestBase;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -20,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Rollback(value = false)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class OrganizationRepositoryTests {
+public class OrganizationRepositoryTests extends PostgresTestBase {
 
     @Autowired
     private TestEntityManager entityManager;

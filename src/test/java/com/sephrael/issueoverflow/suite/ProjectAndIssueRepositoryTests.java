@@ -8,6 +8,7 @@ import com.sephrael.issueoverflow.repository.CommentRepository;
 import com.sephrael.issueoverflow.repository.IssueRepository;
 import com.sephrael.issueoverflow.repository.OrganizationRepository;
 import com.sephrael.issueoverflow.repository.ProjectRepository;
+import com.sephrael.issueoverflow.support.PostgresTestBase;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -26,7 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Rollback(value = false)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class ProjectAndIssueRepositoryTests {
+public class ProjectAndIssueRepositoryTests extends PostgresTestBase {
 
     @Autowired
     private TestEntityManager entityManager;
@@ -247,7 +248,7 @@ public class ProjectAndIssueRepositoryTests {
         // creates a new issue
         Issue issue = new Issue();
         issue.setTitle("Incorrect Baseball Bat Sprite");
-        issue.setDescription("Baseball bat is showing as a dildo");
+        issue.setDescription("Baseball bat sprite shows the wrong item");
         issue.setType("Bug");
         issue.setPriority("High");
         issue.setStatus("Open");
@@ -255,7 +256,7 @@ public class ProjectAndIssueRepositoryTests {
 
         // creates a new comment
         Comment comment = new Comment();
-        comment.setMessage("I wonder who drew the dildo");
+        comment.setMessage("I wonder who drew that sprite");
         commentRepository.save(comment);
 
         // adds comment to issue
@@ -282,7 +283,7 @@ public class ProjectAndIssueRepositoryTests {
         Project deletedProject = projectRepository.findByIdentifierAndOrganization("MLB",
                 organizationRepository.findByAccessKey("2K"));
         Issue deletedIssue = issueRepository.findIssueByTitle("Incorrect Baseball Bat Sprite");
-        Comment deletedComment = commentRepository.findCommentByMessage("I wonder who drew the dildo");
+        Comment deletedComment = commentRepository.findCommentByMessage("I wonder who drew that sprite");
 
         assertThat(deletedProject).isNull();
         assertThat(deletedIssue).isNull();
