@@ -154,7 +154,7 @@ public class UserController {
         if(currentUser.getOrganization() == null)
             return "organization/select-organization";
 
-        User user = userRepository.getById(id);
+        User user = userRepository.getReferenceById(id);
 
         // if the Current User is NOT in the same Organization as the Requested User, redirect to 404 page
         if(!currentUser.getOrganization().getUsers().contains(user)) {

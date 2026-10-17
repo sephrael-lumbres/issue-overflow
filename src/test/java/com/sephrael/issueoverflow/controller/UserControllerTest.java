@@ -9,7 +9,7 @@ import com.sephrael.issueoverflow.entity.User;
 import com.sephrael.issueoverflow.repository.*;
 import com.sephrael.issueoverflow.service.AWSFileService;
 import com.sephrael.issueoverflow.service.UserService;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -68,7 +68,7 @@ public class UserControllerTest {
 
     List<User> users = new ArrayList<>();
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         User johnDoe = new User();
 

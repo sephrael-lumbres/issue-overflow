@@ -46,7 +46,7 @@ public class AccountController {
         if(currentUser.getId() != id)
             return "error/404";
 
-        model.addAttribute("user", userRepository.getById(id));
+        model.addAttribute("user", userRepository.getReferenceById(id));
         model.addAttribute("newProject", new Project());
         model.addAttribute("currentUser", currentUser);
         model.addAttribute("currentUserProjects", currentUser.getProjects());
@@ -99,7 +99,7 @@ public class AccountController {
             return "error/404";
 
         model.addAttribute("newProject", new Project());
-        model.addAttribute("user", userRepository.getById(id));
+        model.addAttribute("user", userRepository.getReferenceById(id));
         model.addAttribute("currentUser", currentUser);
         model.addAttribute("currentUserProjects", currentUser.getProjects());
 
@@ -201,7 +201,7 @@ public class AccountController {
             return "error/404";
 
         model.addAttribute("newProject", new Project());
-        model.addAttribute("user", userRepository.getById(id));
+        model.addAttribute("user", userRepository.getReferenceById(id));
         model.addAttribute("currentUser", currentUser);
         model.addAttribute("currentUserProjects", currentUser.getProjects());
 
