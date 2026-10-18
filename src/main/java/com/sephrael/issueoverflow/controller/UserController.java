@@ -5,8 +5,8 @@ import com.sephrael.issueoverflow.entity.Project;
 import com.sephrael.issueoverflow.entity.User;
 import com.sephrael.issueoverflow.repository.*;
 import com.sephrael.issueoverflow.service.AWSFileService;
+import com.sephrael.issueoverflow.service.TokenGenerator;
 import com.sephrael.issueoverflow.service.UserService;
-import net.bytebuddy.utility.RandomString;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.repository.query.Param;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -77,7 +77,7 @@ public class UserController {
     public String processResetPassword(@RequestParam("email") String email, HttpServletRequest request, Model model) {
         try {
             if(userRepository.findByEmail(email) != null) {
-                String token = RandomString.make(30);
+                String token = TokenGenerator.newToken();
                 String siteURL = request.getRequestURL().toString();
                 String resetPasswordLink = siteURL.replace(request.getServletPath(), "") + "/change-password?token=" + token;
 

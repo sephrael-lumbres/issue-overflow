@@ -4,7 +4,6 @@ import com.sephrael.issueoverflow.entity.*;
 import com.sephrael.issueoverflow.repository.IssueRepository;
 import com.sephrael.issueoverflow.repository.RoleRepository;
 import com.sephrael.issueoverflow.repository.UserRepository;
-import net.bytebuddy.utility.RandomString;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -88,7 +87,7 @@ public class UserService {
     }
 
     public void sendVerificationEmail(User user, HttpServletRequest request) throws MessagingException, UnsupportedEncodingException {
-        String emailVerificationToken = RandomString.make(30);
+        String emailVerificationToken = TokenGenerator.newToken();
         String siteURL = request.getRequestURL().toString();
         String verifyEmailLink = siteURL.replace(request.getServletPath(), "") + "/verify-email?emailVerificationToken=" + emailVerificationToken;
 
