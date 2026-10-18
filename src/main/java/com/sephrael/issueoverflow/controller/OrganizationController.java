@@ -8,11 +8,14 @@ import com.sephrael.issueoverflow.repository.RoleRepository;
 import com.sephrael.issueoverflow.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.security.Principal;
 import java.util.Random;
 
@@ -78,7 +81,8 @@ public class OrganizationController {
     }
 
     @PostMapping("/save")
-    public String createOrganization(Organization organization, Principal principal) {
+    public String createOrganization(Organization organization, Principal principal,
+                                     HttpServletRequest request,HttpServletResponse response) {
         User currentUser = userRepository.findByEmail(principal.getName());
         String accessKey = generateRandomAccessKey(10);
         organization.setAccessKey(accessKey);
@@ -91,7 +95,7 @@ public class OrganizationController {
         userRepository.save(currentUser);
 
         // logs out the Current User to allow the Authorization of 'Project Manager'
-        SecurityContextHolder.getContext().setAuthentication(null);
+        new SecurityContextLogoutHandler().logout(request, response, SecurityContextHolder.getContext().getAuthentication());
 
         return "redirect:/dashboard";
     }
@@ -119,7 +123,8 @@ public class OrganizationController {
     }
 
     @PostMapping("/joining")
-    public String joinOrganization(@RequestParam(value = "accessKey") String accessKey, Principal principal) {
+    public String joinOrganization(@RequestParam(value = "accessKey") String accessKey, Principal principal,
+                                   HttpServletRequest request, HttpServletResponse response) {
         User currentUser = userRepository.findByEmail(principal.getName());
         Organization organization = organizationRepository.findByAccessKey(accessKey);
 
@@ -138,7 +143,7 @@ public class OrganizationController {
 
         // logs out the Current User to allow the Authorization of 'Project Manager'
         if(organization.getUsers().size() == 0)
-            SecurityContextHolder.getContext().setAuthentication(null);
+            new SecurityContextLogoutHandler().logout(request, response, SecurityContextHolder.getContext().getAuthentication());
 
         return "redirect:/dashboard";
     }

@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.repository.query.Param;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +20,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import javax.mail.MessagingException;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.UnsupportedEncodingException;
 import java.security.Principal;
 import java.util.List;
@@ -208,7 +210,8 @@ public class UserController {
 
     @RequestMapping("/users/remove/{id}/{organizationId}")
     public String removeUserFromOrganization(@PathVariable("id") long id, Principal principal,
-                                             @PathVariable("organizationId") long organizationId) {
+                                             @PathVariable("organizationId") long organizationId,
+                                             HttpServletRequest request, HttpServletResponse response) {
         User currentUser = userRepository.findByEmail(principal.getName());
         Organization currentOrganization = organizationRepository.findOrganizationById(organizationId);
 
@@ -247,7 +250,7 @@ public class UserController {
         userService.registerDefaultUser(userBeforeRemoval);
 
         if(Objects.equals(userBeforeRemoval.getId(), currentUser.getId()))
-            SecurityContextHolder.getContext().setAuthentication(null);
+            new SecurityContextLogoutHandler().logout(request, response, SecurityContextHolder.getContext().getAuthentication());
 
         return "redirect:/users";
     }

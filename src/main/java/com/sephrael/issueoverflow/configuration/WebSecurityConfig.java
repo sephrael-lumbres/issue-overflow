@@ -1,96 +1,73 @@
 package com.sephrael.issueoverflow.configuration;
 
-import com.sephrael.issueoverflow.service.CustomUserDetailsService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-
-import javax.sql.DataSource;
+import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 @EnableWebSecurity
-public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+public class WebSecurityConfig {
 
-    @Autowired
-    private DataSource dataSource;
-
-    @Bean
-    public UserDetailsService userDetailsService() {
-        return new CustomUserDetailsService();
-    }
-
+    // Spring Security builds the DaoAuthenticationProvider from the single
+    // UserDetailsService bean (CustomUserDetailsService) and this encoder.
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
     @Bean
-    public DaoAuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(userDetailsService());
-        authProvider.setPasswordEncoder(passwordEncoder());
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .authorizeHttpRequests(authorize -> authorize
+                // Spring Security 6 default; remove with the Spring Boot 3 upgrade
+                .shouldFilterAllDispatcherTypes(true)
 
-        return authProvider;
-    }
-
-    @Override
-    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-        auth.authenticationProvider(authenticationProvider());
-    }
-
-    @Override
-    protected void configure(HttpSecurity http) throws Exception {
-        http.authorizeRequests()
-                // the line below is the paths that require authentication and role permissions to access
-                .antMatchers("/register", "/login", "/process_register").permitAll()
-                .antMatchers("/privacy", "/cookie-policy").permitAll()
-                .antMatchers("/getting-started", "/getting-started/*", "/knowledge-base/**", "/contact-us/**").permitAll()
-                .antMatchers("/reset-password", "/change-password*", "/verify-email*").permitAll()
-                .antMatchers("/error", "/js/**", "/assets/**", "/css/**").permitAll()
+                // paths that anyone can access
+                .requestMatchers("/register", "/login", "/process_register").permitAll()
+                .requestMatchers("/privacy", "/cookie-policy").permitAll()
+                .requestMatchers("/getting-started", "/getting-started/*", "/knowledge-base/**", "/contact-us/**").permitAll()
+                .requestMatchers("/reset-password", "/change-password*", "/verify-email*").permitAll()
+                .requestMatchers("/error", "/js/**", "/assets/**", "/css/**").permitAll()
 
                 // Update and Removal operations on Users allowed only to Project Managers
-                .antMatchers("/users/edit/*", "/users/update/*", "/users/remove/**")
-                .hasAuthority("Project Manager")
+                .requestMatchers("/users/edit/*", "/users/update/*", "/users/remove/**").hasAuthority("Project Manager")
 
                 // Update operations on Organization allowed only to Project Managers
-                .antMatchers("/organization/update")
-                .hasAuthority("Project Manager")
+                .requestMatchers("/organization/update").hasAuthority("Project Manager")
 
                 // CRUD operations on Projects allowed only to Project Managers
-                .antMatchers("/projects/new", "/projects/save", "/projects/delete/*")
-                .hasAnyAuthority("Project Manager")
+                .requestMatchers("/projects/new", "/projects/save", "/projects/delete/*").hasAnyAuthority("Project Manager")
 
                 // CRUD operations on Issues allowed to Project Managers, Admins, and Developers
-                .antMatchers("/issues/*/new", "/issues/*/edit/*", "/issues/*/delete/**", "/issues/new", "/issues/update")
-                .hasAnyAuthority("Project Manager", "Admin", "Developer")
+                .requestMatchers("/issues/*/new", "/issues/*/edit/*", "/issues/*/delete/**", "/issues/new", "/issues/update")
+                    .hasAnyAuthority("Project Manager", "Admin", "Developer")
 
                 // view Issues allowed to all Roles
-                .antMatchers("/issues/*/view/*")
-                .hasAnyAuthority("Project Manager", "Admin", "Developer", "Guest")
+                .requestMatchers("/issues/*/view/*").hasAnyAuthority("Project Manager", "Admin", "Developer", "Guest")
 
                 // deletion of Files only allowed to PMs, Admins, and Developers
-                .antMatchers("/storage/*/*/delete/*")
-                .hasAnyAuthority("Project Manager", "Admin", "Developer")
+                .requestMatchers("/storage/*/*/delete/*").hasAnyAuthority("Project Manager", "Admin", "Developer")
 
                 // CRUD operations on Comments allowed to all Roles
-                .antMatchers("/issues/*/view/*/comment/**")
-                .hasAnyAuthority("Project Manager", "Admin", "Developer", "Guest")
-
+                .requestMatchers("/issues/*/view/*/comment/**").hasAnyAuthority("Project Manager", "Admin", "Developer", "Guest")
                 .anyRequest().authenticated()
-                .and()
-                .formLogin()
+            )
+            .formLogin(form -> form
                 .loginPage("/login")
                 .usernameParameter("email")
                 .defaultSuccessUrl("/dashboard")
                 .permitAll()
-                .and()
-                .logout().logoutSuccessUrl("/login").permitAll();
+            )
+            .logout(logout -> logout
+                .logoutSuccessUrl("/login")
+                .permitAll()
+            )
+            // Spring Security 6 default; remove with the Spring Boot 3 upgrade
+            .securityContext(context -> context.requireExplicitSave(true));
+
+        return http.build();
     }
 }
