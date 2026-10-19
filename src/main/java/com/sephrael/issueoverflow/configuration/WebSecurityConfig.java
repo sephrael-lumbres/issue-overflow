@@ -22,9 +22,6 @@ public class WebSecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(authorize -> authorize
-                // Spring Security 6 default; remove with the Spring Boot 3 upgrade
-                .shouldFilterAllDispatcherTypes(true)
-
                 // paths that anyone can access
                 .requestMatchers("/register", "/login", "/process_register").permitAll()
                 .requestMatchers("/privacy", "/cookie-policy").permitAll()
@@ -63,10 +60,7 @@ public class WebSecurityConfig {
             )
             .logout(logout -> logout
                 .logoutSuccessUrl("/login")
-                .permitAll()
-            )
-            // Spring Security 6 default; remove with the Spring Boot 3 upgrade
-            .securityContext(context -> context.requireExplicitSave(true));
+                .permitAll());
 
         return http.build();
     }

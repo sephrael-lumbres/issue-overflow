@@ -15,9 +15,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import javax.sql.DataSource;
@@ -36,34 +36,34 @@ public class UserControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private AWSFileService awsFileService;
 
-    @MockBean
+    @MockitoBean
     protected DataSource dataSource;
 
-    @MockBean
+    @MockitoBean
     protected UserRepository userRepository;
 
-    @MockBean
+    @MockitoBean
     protected UserService userService;
 
-    @MockBean
+    @MockitoBean
     protected OrganizationRepository organizationRepository;
 
-    @MockBean
+    @MockitoBean
     protected ProjectRepository projectRepository;
 
-    @MockBean
+    @MockitoBean
     protected RoleRepository roleRepository;
 
-    @MockBean
+    @MockitoBean
     protected IssueKeySequenceRepository issueKeySequenceRepository;
 
-    @MockBean
+    @MockitoBean
     protected CommentRepository commentRepository;
 
-    @MockBean
+    @MockitoBean
     protected IssueRepository issueRepository;
 
     List<User> users = new ArrayList<>();
