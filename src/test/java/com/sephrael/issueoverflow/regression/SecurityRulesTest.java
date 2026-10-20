@@ -28,7 +28,7 @@ class SecurityRulesTest extends WebIntegrationTestBase {
     void anonymousUserIsRedirectedToLogin() throws Exception {
         mockMvc.perform(get("/dashboard"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrlPattern("**/login"));
+                .andExpect(redirectedUrl("/login"));
     }
 
     @Test
@@ -42,11 +42,12 @@ class SecurityRulesTest extends WebIntegrationTestBase {
         mockMvc.perform(get("/reset-password"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("reset-password"));
-        // Passes security ("/change-password*") and reaches the controller, which
-        // redirects to the relative "/login" (security would redirect to an absolute URL).
+        // Passes security ("/change-password*") and reaches the controller, which flashes "Invalid Token!". The entry point's
+        // redirect would carry no flash attribute (both redirect to "/login" since Spring Security 7 favors relative URIs).
         mockMvc.perform(get("/change-password").param("token", "not-a-real-token"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/login"));
+                .andExpect(redirectedUrl("/login"))
+                .andExpect(flash().attribute("error", "Invalid Token!"));
     }
 
     @Test
@@ -152,7 +153,7 @@ class SecurityRulesTest extends WebIntegrationTestBase {
 
         mockMvc.perform(get("/dashboard").session(session))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrlPattern("**/login"));
+                .andExpect(redirectedUrl("/login"));
 
         User reloaded = userRepository.findByEmail(newcomer.getEmail());
         assertThat(reloaded.getOrganization()).isNotNull();
