@@ -33,10 +33,10 @@ public class RoleRepositoryTests extends PostgresTestBase {
         developer.setName("Developer");
         guest.setName("Guest");
 
+        long rolesBefore = roleRepository.count();
+
         roleRepository.saveAll(List.of(projectManager, admin, developer, guest));
 
-        List<Role> listRoles = roleRepository.findAll();
-
-        assertThat(listRoles.size()).isEqualTo(4);
+        assertThat(roleRepository.count()).isEqualTo(rolesBefore + 4);
     }
 }
