@@ -5,8 +5,8 @@ import com.sephrael.issueoverflow.repository.RoleRepository;
 import com.sephrael.issueoverflow.support.PostgresTestBase;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.test.annotation.Rollback;
 
 import java.util.List;
@@ -33,10 +33,10 @@ public class RoleRepositoryTests extends PostgresTestBase {
         developer.setName("Developer");
         guest.setName("Guest");
 
+        long rolesBefore = roleRepository.count();
+
         roleRepository.saveAll(List.of(projectManager, admin, developer, guest));
 
-        List<Role> listRoles = roleRepository.findAll();
-
-        assertThat(listRoles.size()).isEqualTo(4);
+        assertThat(roleRepository.count()).isEqualTo(rolesBefore + 4);
     }
 }

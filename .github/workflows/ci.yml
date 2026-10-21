@@ -11,6 +11,6 @@ jobs:
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: '11'
+          java-version: '21'
           cache: maven
       - run: ./mvnw -B verify

@@ -5,20 +5,22 @@ import com.sephrael.issueoverflow.entity.Project;
 import com.sephrael.issueoverflow.entity.User;
 import com.sephrael.issueoverflow.repository.*;
 import com.sephrael.issueoverflow.service.AWSFileService;
+import com.sephrael.issueoverflow.service.TokenGenerator;
 import com.sephrael.issueoverflow.service.UserService;
-import net.bytebuddy.utility.RandomString;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.repository.query.Param;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import javax.mail.MessagingException;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.mail.MessagingException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.UnsupportedEncodingException;
 import java.security.Principal;
 import java.util.List;
@@ -75,7 +77,7 @@ public class UserController {
     public String processResetPassword(@RequestParam("email") String email, HttpServletRequest request, Model model) {
         try {
             if(userRepository.findByEmail(email) != null) {
-                String token = RandomString.make(30);
+                String token = TokenGenerator.newToken();
                 String siteURL = request.getRequestURL().toString();
                 String resetPasswordLink = siteURL.replace(request.getServletPath(), "") + "/change-password?token=" + token;
 
@@ -154,7 +156,7 @@ public class UserController {
         if(currentUser.getOrganization() == null)
             return "organization/select-organization";
 
-        User user = userRepository.getById(id);
+        User user = userRepository.getReferenceById(id);
 
         // if the Current User is NOT in the same Organization as the Requested User, redirect to 404 page
         if(!currentUser.getOrganization().getUsers().contains(user)) {
@@ -208,7 +210,8 @@ public class UserController {
 
     @RequestMapping("/users/remove/{id}/{organizationId}")
     public String removeUserFromOrganization(@PathVariable("id") long id, Principal principal,
-                                             @PathVariable("organizationId") long organizationId) {
+                                             @PathVariable("organizationId") long organizationId,
+                                             HttpServletRequest request, HttpServletResponse response) {
         User currentUser = userRepository.findByEmail(principal.getName());
         Organization currentOrganization = organizationRepository.findOrganizationById(organizationId);
 
@@ -247,7 +250,7 @@ public class UserController {
         userService.registerDefaultUser(userBeforeRemoval);
 
         if(Objects.equals(userBeforeRemoval.getId(), currentUser.getId()))
-            SecurityContextHolder.getContext().setAuthentication(null);
+            new SecurityContextLogoutHandler().logout(request, response, SecurityContextHolder.getContext().getAuthentication());
 
         return "redirect:/users";
     }

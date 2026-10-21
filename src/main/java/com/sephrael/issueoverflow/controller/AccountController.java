@@ -10,6 +10,7 @@ import com.sephrael.issueoverflow.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,7 +19,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.security.Principal;
 import java.util.Objects;
 
@@ -46,7 +48,7 @@ public class AccountController {
         if(currentUser.getId() != id)
             return "error/404";
 
-        model.addAttribute("user", userRepository.getById(id));
+        model.addAttribute("user", userRepository.getReferenceById(id));
         model.addAttribute("newProject", new Project());
         model.addAttribute("currentUser", currentUser);
         model.addAttribute("currentUserProjects", currentUser.getProjects());
@@ -56,7 +58,8 @@ public class AccountController {
 
     @PostMapping("/profile/{id}/save")
     public String saveAccountProfileChanges(@PathVariable("id") long id, User user, Principal principal,
-                                            RedirectAttributes redirectAttributes) {
+                                            RedirectAttributes redirectAttributes,
+                                            HttpServletRequest request, HttpServletResponse response) {
         User currentUser = userRepository.findByEmail(principal.getName());
 
         if(currentUser.getOrganization() == null)
@@ -77,7 +80,7 @@ public class AccountController {
 
             if(!Objects.equals(previousEmail, user.getEmail())) {
                 redirectAttributes.addFlashAttribute("emailChangeSuccess", "Email address has been successfully updated. Please log in with your new email address.");
-                SecurityContextHolder.getContext().setAuthentication(null);
+                new SecurityContextLogoutHandler().logout(request, response, SecurityContextHolder.getContext().getAuthentication());
                 return "redirect:/login";
             }
             redirectAttributes.addFlashAttribute("profileChangeSuccess", "Account Profile changes have been saved");
@@ -99,7 +102,7 @@ public class AccountController {
             return "error/404";
 
         model.addAttribute("newProject", new Project());
-        model.addAttribute("user", userRepository.getById(id));
+        model.addAttribute("user", userRepository.getReferenceById(id));
         model.addAttribute("currentUser", currentUser);
         model.addAttribute("currentUserProjects", currentUser.getProjects());
 
@@ -201,7 +204,7 @@ public class AccountController {
             return "error/404";
 
         model.addAttribute("newProject", new Project());
-        model.addAttribute("user", userRepository.getById(id));
+        model.addAttribute("user", userRepository.getReferenceById(id));
         model.addAttribute("currentUser", currentUser);
         model.addAttribute("currentUserProjects", currentUser.getProjects());
 
