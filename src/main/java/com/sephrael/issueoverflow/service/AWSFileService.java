@@ -4,7 +4,6 @@ import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.*;
-import com.amazonaws.util.IOUtils;
 import com.sephrael.issueoverflow.entity.AWSFile;
 import com.sephrael.issueoverflow.entity.Issue;
 import com.sephrael.issueoverflow.entity.Project;
@@ -96,25 +95,6 @@ public class AWSFileService {
             logger.info("AmazonClientException Message: " + amazonClientException.getMessage());
             throw amazonClientException;
         }
-    }
-
-    public byte[] getAWSFile(String fileKey) throws IOException {
-        // checks if the requested file exists within the AWS S3 bucket,
-        // then if an "AWSFile" exists with the given fileKey, it is deleted
-        if(!s3Client.doesObjectExist(bucketName, fileKey)) {
-            AWSFile awsFile = awsFileRepository.findByFileKey(fileKey);
-
-            if(awsFile.isProfilePicture())
-                awsFile.getUser().setHasProfilePicture(false);
-
-            awsFileRepository.delete(awsFile);
-        } else {
-            S3Object s3Object = s3Client.getObject(bucketName, fileKey);
-
-            return IOUtils.toByteArray(s3Object.getObjectContent());
-        }
-
-        return null;
     }
 
     public void deleteFile(String fileKey) {

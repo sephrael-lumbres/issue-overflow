@@ -364,7 +364,6 @@
                                         <i th:case="'image/jpeg'" class="me-1 mt-1" data-feather="image"></i>
                                         <i th:case="*" class="me-1 mt-1" data-feather="file"></i>
                                     </span>
-<!--                                    <a th:href="@{'/storage/download/' + ${attachment.getFileKey()}}" th:text="${attachment.getFileName()}" id="attachments"></a>-->
                                     <a th:href="@{${attachment.getUrl()}}" th:text="${attachment.getFileName()}" id="attachments" target="_blank"></a>
                                     <span th:if="${attachment.size < 1000000}" th:text="'(' + ${attachment.size / 1000} + ' KB, ' + ${#temporals.format(attachment.dateCreated, 'dd MMM yyyy HH:mm:ss')} + ')'" style="font-size: 12px;"></span>
                                     <span th:if="${attachment.size > 999999}" th:text="'(' + ${#numbers.formatDecimal((attachment.size * 1.0) / 1000000, 1, 1)} + ' MB, ' + ${#temporals.format(attachment.dateCreated, 'dd MMM yyyy HH:mm:ss')} + ')'" style="font-size: 12px;"></span>

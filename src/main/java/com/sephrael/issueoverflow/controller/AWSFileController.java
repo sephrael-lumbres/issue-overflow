@@ -6,14 +6,11 @@ import com.sephrael.issueoverflow.repository.AWSFileRepository;
 import com.sephrael.issueoverflow.repository.UserRepository;
 import com.sephrael.issueoverflow.service.AWSFileService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.io.IOException;
 import java.security.Principal;
 import java.util.Objects;
 
@@ -67,39 +64,6 @@ public class AWSFileController {
             redirectAttributes.addFlashAttribute("pictureUploadError", "An error has occurred while attempting to upload Profile Picture");;
 
         return "redirect:/account/profile/" + userId;
-    }
-
-    // this has been replaced by the actual object's resource direct URL
-    @GetMapping("/download/{fileKey}")
-    public ResponseEntity<byte[]> downloadFileByKey(@PathVariable String fileKey, Principal principal) throws IOException {
-        User currentUser = userRepository.findByEmail(principal.getName());
-        AWSFile awsFile = awsFileRepository.findByFileKey(fileKey);
-        byte[] AWSFileData = awsFileService.getAWSFile(fileKey);
-
-        // if the requested file's Organization does NOT match the current User's Organization, redirect to NOT FOUND page
-        if(!Objects.equals(awsFile.getUser().getOrganization().getId(), currentUser.getOrganization().getId()))
-            return ResponseEntity.notFound().build();
-
-        return ResponseEntity.ok()
-                .contentLength(AWSFileData.length)
-                .header("Content-type", "application/octet-stream")
-                .header("Content-disposition", "attachment; filename=\"" + awsFile.getFileName() + "\"")
-                .body(AWSFileData);
-    }
-
-    // this has been replaced by the actual profile pictures' direct URL
-    @GetMapping("/profile-picture/{userId}")
-    public ResponseEntity<byte[]> getProfilePicture(@PathVariable("userId") long userId, Principal principal) throws IOException {
-        // if the requested File's 'Organization' does NOT match the Current User's 'Organization', redirect to NOT FOUND page
-        if(userRepository.findUserById(userId).getOrganization() != userRepository.findByEmail(principal.getName()).getOrganization())
-            return ResponseEntity.notFound().build();
-
-        AWSFile awsFile = awsFileRepository.findByUserAndIsProfilePictureTrue(userRepository.findUserById(userId));
-        byte[] AWSFileData = awsFileService.getAWSFile(awsFile.getFileKey());
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + awsFile.getFileName() + "\"")
-                .body(AWSFileData);
     }
 
     @RequestMapping("/{identifier}/{issueKey}/delete/{fileKey}")
