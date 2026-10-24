@@ -2,10 +2,12 @@ package com.sephrael.issueoverflow.support;
 
 import com.sephrael.issueoverflow.entity.*;
 import com.sephrael.issueoverflow.repository.*;
+import com.sephrael.issueoverflow.service.AWSFileService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockHttpSession;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -14,9 +16,13 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.testcontainers.utility.DockerImageName;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -25,12 +31,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * Base class for the full-stack regression tests.
- *
+ * <p>
  * Uses its own Postgres container, separate from PostgresTestBase. The older
  * repository tests commit data and recreate the schema whenever their Spring
  * context starts, so sharing their database would make these tests depend on
  * class execution order. Subclasses must not add Spring test annotations, so
  * that they all share one Spring context.
+ * <p>
+ * S3 calls go to an S3Mock container (path-style, signatures not checked)
+ * that starts with the bucket named in application-test.properties.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -38,11 +47,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public abstract class WebIntegrationTestBase {
 
     protected static final String PASSWORD = "test-password";
+    protected static final String UUID_PATTERN = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
     static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18-alpine");
+    static final GenericContainer<?> S3_MOCK = new GenericContainer<>(DockerImageName.parse("adobe/s3mock:5.2.3"))
+            .withExposedPorts(9090)
+            .withEnv("COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS", "test-bucket")
+            .waitingFor(Wait.forHttp("/favicon.ico").forPort(9090));
     private static final BCryptPasswordEncoder ENCODER = new BCryptPasswordEncoder();
 
     static {
         POSTGRES.start();
+        S3_MOCK.start();
     }
 
     @Autowired
@@ -58,6 +73,10 @@ public abstract class WebIntegrationTestBase {
     @Autowired
     protected IssueRepository issueRepository;
     @Autowired
+    protected AWSFileRepository awsFileRepository;
+    @Autowired
+    protected AWSFileService awsFileService;
+    @Autowired
     private PlatformTransactionManager transactionManager;
 
     @DynamicPropertySource
@@ -65,6 +84,8 @@ public abstract class WebIntegrationTestBase {
         registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
         registry.add("spring.datasource.username", POSTGRES::getUsername);
         registry.add("spring.datasource.password", POSTGRES::getPassword);
+        registry.add("app.s3.endpoint",
+                () -> "http://" + S3_MOCK.getHost() + ":" + S3_MOCK.getMappedPort(9090));
     }
 
     protected static String uniqueSuffix() {
@@ -145,6 +166,19 @@ public abstract class WebIntegrationTestBase {
             issue.setTitle(newTitle);
             issue.setUpdatedBy(editor);
         });
+    }
+
+    // Uploads one attachment to the fixture's issue the way the issue page does, and returns its record.
+    protected AWSFile uploadAttachment(Fixture fixture, String fileName, String contentType, byte[] content) {
+        MockMultipartFile file = new MockMultipartFile("files", fileName, contentType, content);
+        inTransaction(() -> {
+            User author = userRepository.findById(fixture.projectManager.getId()).orElseThrow();
+            Issue issue = issueRepository.findById(fixture.issue.getId()).orElseThrow();
+            awsFileService.uploadFile(file, author, issue, false);
+        });
+        List<AWSFile> files = awsFileRepository.findByIssue(fixture.issue);
+        assertThat(files).hasSize(1);
+        return files.get(0);
     }
 
     // Logs in through the real login form and returns the authenticated session.
