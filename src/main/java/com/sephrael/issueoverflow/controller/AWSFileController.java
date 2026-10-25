@@ -6,15 +6,17 @@ import com.sephrael.issueoverflow.repository.AWSFileRepository;
 import com.sephrael.issueoverflow.repository.UserRepository;
 import com.sephrael.issueoverflow.service.AWSFileService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
+import org.springframework.http.CacheControl;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.io.IOException;
 import java.security.Principal;
+import java.time.Duration;
 import java.util.Objects;
 
 @Controller
@@ -69,37 +71,21 @@ public class AWSFileController {
         return "redirect:/account/profile/" + userId;
     }
 
-    // this has been replaced by the actual object's resource direct URL
-    @GetMapping("/download/{fileKey}")
-    public ResponseEntity<byte[]> downloadFileByKey(@PathVariable String fileKey, Principal principal) throws IOException {
+    // Redirects to a short-lived pre-signed S3 URL. The redirect may be cached privately for less time than the URL stays valid.
+    @GetMapping("/files/{fileKey}")
+    public ResponseEntity<Void> redirectToFile(@PathVariable("fileKey") String fileKey, Principal principal) {
         User currentUser = userRepository.findByEmail(principal.getName());
         AWSFile awsFile = awsFileRepository.findByFileKey(fileKey);
-        byte[] AWSFileData = awsFileService.getAWSFile(fileKey);
 
-        // if the requested file's Organization does NOT match the current User's Organization, redirect to NOT FOUND page
-        if(!Objects.equals(awsFile.getUser().getOrganization().getId(), currentUser.getOrganization().getId()))
-            return ResponseEntity.notFound().build();
+        // Unknown keys and files from other organizations look the same. Throwing
+        // (instead of returning a 404 response) shows the app's 404 page.
+        if(awsFile == null || !awsFileService.canView(currentUser, awsFile))
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
 
-        return ResponseEntity.ok()
-                .contentLength(AWSFileData.length)
-                .header("Content-type", "application/octet-stream")
-                .header("Content-disposition", "attachment; filename=\"" + awsFile.getFileName() + "\"")
-                .body(AWSFileData);
-    }
-
-    // this has been replaced by the actual profile pictures' direct URL
-    @GetMapping("/profile-picture/{userId}")
-    public ResponseEntity<byte[]> getProfilePicture(@PathVariable("userId") long userId, Principal principal) throws IOException {
-        // if the requested File's 'Organization' does NOT match the Current User's 'Organization', redirect to NOT FOUND page
-        if(userRepository.findUserById(userId).getOrganization() != userRepository.findByEmail(principal.getName()).getOrganization())
-            return ResponseEntity.notFound().build();
-
-        AWSFile awsFile = awsFileRepository.findByUserAndIsProfilePictureTrue(userRepository.findUserById(userId));
-        byte[] AWSFileData = awsFileService.getAWSFile(awsFile.getFileKey());
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + awsFile.getFileName() + "\"")
-                .body(AWSFileData);
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .location(awsFileService.presignedUrl(awsFile))
+                .cacheControl(CacheControl.maxAge(Duration.ofMinutes(5)).cachePrivate())
+                .build();
     }
 
     @RequestMapping("/{identifier}/{issueKey}/delete/{fileKey}")

@@ -70,12 +70,12 @@
                 <!-- User Dropdown-->
                 <li class="nav-item dropdown no-caret dropdown-user me-3 me-lg-4">
                     <a class="btn btn-icon btn-transparent-dark dropdown-toggle" id="navbarDropdownUserImage" href="javascript:void(0);" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        <img th:if="${currentUser.hasProfilePicture()}" th:src="${currentUser.getProfilePictureURL()}"
+                        <img th:if="${currentUser.hasProfilePicture()}" th:src="@{/storage/files/{key}(key=${currentUser.profilePictureKey})}"
                              src="/assets/img/demo/user-placeholder.svg" class="img-fluid" alt="">
                         <img th:unless="${currentUser.hasProfilePicture()}" src="/assets/img/demo/user-placeholder.svg" class="img-fluid" alt="">
                     </a>                    <div class="dropdown-menu dropdown-menu-end border-0 shadow animated--fade-in-up" aria-labelledby="navbarDropdownUserImage">
                         <div class="h6 dropdown-header d-flex align-items-center">
-                            <img th:if="${currentUser.hasProfilePicture()}" th:src="${currentUser.getProfilePictureURL()}"
+                            <img th:if="${currentUser.hasProfilePicture()}" th:src="@{/storage/files/{key}(key=${currentUser.profilePictureKey})}"
                                  src="/assets/img/demo/user-placeholder.svg" class="dropdown-user-img" alt="">
                             <img th:unless="${currentUser.hasProfilePicture()}" src="/assets/img/demo/user-placeholder.svg"
                                  class="dropdown-user-img" alt="">
@@ -364,8 +364,7 @@
                                         <i th:case="'image/jpeg'" class="me-1 mt-1" data-feather="image"></i>
                                         <i th:case="*" class="me-1 mt-1" data-feather="file"></i>
                                     </span>
-<!--                                    <a th:href="@{'/storage/download/' + ${attachment.getFileKey()}}" th:text="${attachment.getFileName()}" id="attachments"></a>-->
-                                    <a th:href="@{${attachment.getUrl()}}" th:text="${attachment.getFileName()}" id="attachments" target="_blank"></a>
+                                    <a th:href="@{/storage/files/{key}(key=${attachment.fileKey})}" th:text="${attachment.getFileName()}" id="attachments" target="_blank"></a>
                                     <span th:if="${attachment.size < 1000000}" th:text="'(' + ${attachment.size / 1000} + ' KB, ' + ${#temporals.format(attachment.dateCreated, 'dd MMM yyyy HH:mm:ss')} + ')'" style="font-size: 12px;"></span>
                                     <span th:if="${attachment.size > 999999}" th:text="'(' + ${#numbers.formatDecimal((attachment.size * 1.0) / 1000000, 1, 1)} + ' MB, ' + ${#temporals.format(attachment.dateCreated, 'dd MMM yyyy HH:mm:ss')} + ')'" style="font-size: 12px;"></span>
                                     <a th:if="${attachment.getUser().getId() == currentUser.getId()}" class="btn-transparent-dark"

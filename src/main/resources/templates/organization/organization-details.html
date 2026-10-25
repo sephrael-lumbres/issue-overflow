@@ -69,12 +69,12 @@
                 <!-- User Dropdown-->
                 <li class="nav-item dropdown no-caret dropdown-user me-3 me-lg-4">
                     <a class="btn btn-icon btn-transparent-dark dropdown-toggle" id="navbarDropdownUserImage" href="javascript:void(0);" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        <img th:if="${currentUser.hasProfilePicture()}" th:src="${currentUser.getProfilePictureURL()}"
+                        <img th:if="${currentUser.hasProfilePicture()}" th:src="@{/storage/files/{key}(key=${currentUser.profilePictureKey})}"
                              src="/assets/img/demo/user-placeholder.svg" class="img-fluid" alt="">
                         <img th:unless="${currentUser.hasProfilePicture()}" src="/assets/img/demo/user-placeholder.svg" class="img-fluid" alt="">
                     </a>                    <div class="dropdown-menu dropdown-menu-end border-0 shadow animated--fade-in-up" aria-labelledby="navbarDropdownUserImage">
                         <div class="h6 dropdown-header d-flex align-items-center">
-                            <img th:if="${currentUser.hasProfilePicture()}" th:src="${currentUser.getProfilePictureURL()}"
+                            <img th:if="${currentUser.hasProfilePicture()}" th:src="@{/storage/files/{key}(key=${currentUser.profilePictureKey})}"
                                  src="/assets/img/demo/user-placeholder.svg" class="dropdown-user-img" alt="">
                             <img th:unless="${currentUser.hasProfilePicture()}" src="/assets/img/demo/user-placeholder.svg"
                                  class="dropdown-user-img" alt="">
@@ -341,7 +341,7 @@
                                          th:classappend="${list.index < list.size - 3 ? 'mb-3' : 'mb-xs-3 mb-sm-3 mb-lg-0'}">
                                         <div class="d-flex align-items-center">
                                             <div class="avatar avatar-lg">
-                                                <img th:if="${projectManager.hasProfilePicture()}" th:src="${projectManager.getProfilePictureURL()}"
+                                                <img th:if="${projectManager.hasProfilePicture()}" th:src="@{/storage/files/{key}(key=${projectManager.profilePictureKey})}"
                                                      src="/assets/img/demo/user-placeholder.svg" class="avatar-img img-fluid" alt="">
                                                 <img th:unless="${projectManager.hasProfilePicture()}" src="/assets/img/demo/user-placeholder.svg" class="avatar-img img-fluid" alt="">
                                             </div>
@@ -363,7 +363,7 @@
                                          th:classappend="${list.index < list.size - 3 ? 'mb-3' : 'mb-xs-3 mb-sm-3 mb-lg-0'}">
                                         <div class="d-flex align-items-center">
                                             <div class="avatar avatar-lg">
-                                                <img th:if="${admin.hasProfilePicture()}" th:src="${admin.getProfilePictureURL()}"
+                                                <img th:if="${admin.hasProfilePicture()}" th:src="@{/storage/files/{key}(key=${admin.profilePictureKey})}"
                                                      src="/assets/img/demo/user-placeholder.svg" class="avatar-img img-fluid" alt="">
                                                 <img th:unless="${admin.hasProfilePicture()}" src="/assets/img/demo/user-placeholder.svg" class="avatar-img img-fluid" alt="">
                                             </div>
@@ -385,7 +385,7 @@
                                          th:classappend="${list.index < list.size - 3 ? 'mb-3' : 'mb-xs-3 mb-sm-3 mb-lg-0'}">
                                         <div class="d-flex align-items-center">
                                             <div class="avatar avatar-lg">
-                                                <img th:if="${developer.hasProfilePicture()}" th:src="${developer.getProfilePictureURL()}"
+                                                <img th:if="${developer.hasProfilePicture()}" th:src="@{/storage/files/{key}(key=${developer.profilePictureKey})}"
                                                      src="/assets/img/demo/user-placeholder.svg" class="avatar-img img-fluid" alt="">
                                                 <img th:unless="${developer.hasProfilePicture()}" src="/assets/img/demo/user-placeholder.svg" class="avatar-img img-fluid" alt="">
                                             </div>
@@ -407,7 +407,7 @@
                                          th:classappend="${list.index < list.size - 3 ? 'mb-3' : 'mb-xs-3 mb-sm-3 mb-lg-0'}">
                                         <div class="d-flex align-items-center">
                                             <div class="avatar avatar-lg">
-                                                <img th:if="${guest.hasProfilePicture()}" th:src="${guest.getProfilePictureURL()}"
+                                                <img th:if="${guest.hasProfilePicture()}" th:src="@{/storage/files/{key}(key=${guest.profilePictureKey})}"
                                                      src="/assets/img/demo/user-placeholder.svg" class="avatar-img img-fluid" alt="">
                                                 <img th:unless="${guest.hasProfilePicture()}" src="/assets/img/demo/user-placeholder.svg" class="avatar-img img-fluid" alt="">
                                             </div>

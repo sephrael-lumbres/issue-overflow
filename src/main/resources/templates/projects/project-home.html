@@ -69,13 +69,13 @@
                 <!-- User Dropdown-->
                 <li class="nav-item dropdown no-caret dropdown-user me-3 me-lg-4">
                     <a class="btn btn-icon btn-transparent-dark dropdown-toggle" id="navbarDropdownUserImage" href="javascript:void(0);" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        <img th:if="${currentUser.hasProfilePicture()}" th:src="${currentUser.getProfilePictureURL()}"
+                        <img th:if="${currentUser.hasProfilePicture()}" th:src="@{/storage/files/{key}(key=${currentUser.profilePictureKey})}"
                              src="/assets/img/demo/user-placeholder.svg" class="img-fluid" alt="">
                         <img th:unless="${currentUser.hasProfilePicture()}" src="/assets/img/demo/user-placeholder.svg" class="img-fluid" alt="">
                     </a>
                     <div class="dropdown-menu dropdown-menu-end border-0 shadow animated--fade-in-up" aria-labelledby="navbarDropdownUserImage">
                         <div class="h6 dropdown-header d-flex align-items-center">
-                            <img th:if="${currentUser.hasProfilePicture()}" th:src="${currentUser.getProfilePictureURL()}"
+                            <img th:if="${currentUser.hasProfilePicture()}" th:src="@{/storage/files/{key}(key=${currentUser.profilePictureKey})}"
                                  src="/assets/img/demo/user-placeholder.svg" class="dropdown-user-img" alt="">
                             <img th:unless="${currentUser.hasProfilePicture()}" src="/assets/img/demo/user-placeholder.svg"
                                  class="dropdown-user-img" alt="">
@@ -326,7 +326,7 @@
                                                 <div th:each="user, list : ${currentOrganizationMembers}" th:if="${user.getProjects().contains(currentProject)}" class="d-flex align-items-center justify-content-between">
                                                     <div th:classappend="${!list.last} ? 'mb-4'" class="d-flex align-items-center flex-shrink-0 me-3">
                                                         <div class="avatar avatar-xl me-3 bg-gray-200">
-                                                            <img th:if="${user.hasProfilePicture()}" th:src="${user.getProfilePictureURL()}"
+                                                            <img th:if="${user.hasProfilePicture()}" th:src="@{/storage/files/{key}(key=${user.profilePictureKey})}"
                                                                  src="/assets/img/demo/user-placeholder.svg" class="avatar-img img-fluid" alt="" />
                                                             <img th:unless="${user.hasProfilePicture()}"
                                                                  src="/assets/img/demo/user-placeholder.svg" class="avatar-img img-fluid" alt="">
