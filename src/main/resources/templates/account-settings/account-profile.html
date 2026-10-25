@@ -69,13 +69,13 @@
                 <!-- User Dropdown-->
                 <li class="nav-item dropdown no-caret dropdown-user me-3 me-lg-4">
                     <a class="btn btn-icon btn-transparent-dark dropdown-toggle" id="navbarDropdownUserImage" href="javascript:void(0);" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        <img th:if="${currentUser.hasProfilePicture()}" th:src="${currentUser.getProfilePictureURL()}"
+                        <img th:if="${currentUser.hasProfilePicture()}" th:src="@{/storage/files/{key}(key=${currentUser.profilePictureKey})}"
                              src="/assets/img/demo/user-placeholder.svg" class="img-fluid" alt="">
                         <img th:unless="${currentUser.hasProfilePicture()}" src="/assets/img/demo/user-placeholder.svg" class="img-fluid" alt="">
                     </a>
                     <div class="dropdown-menu dropdown-menu-end border-0 shadow animated--fade-in-up" aria-labelledby="navbarDropdownUserImage">
                         <h6 class="dropdown-header d-flex align-items-center">
-                            <img th:if="${currentUser.hasProfilePicture()}" th:src="${currentUser.getProfilePictureURL()}"
+                            <img th:if="${currentUser.hasProfilePicture()}" th:src="@{/storage/files/{key}(key=${currentUser.profilePictureKey})}"
                                  src="/assets/img/demo/user-placeholder.svg" class="dropdown-user-img" alt="">
                             <img th:unless="${currentUser.hasProfilePicture()}" src="/assets/img/demo/user-placeholder.svg"
                                  class="dropdown-user-img" alt="">
@@ -303,7 +303,7 @@
                                     <div class="card-header">Profile Picture</div>
                                     <div class="card-body text-center">
                                         <!-- Profile picture image-->
-                                        <img th:if="${currentUser.hasProfilePicture()}" th:src="${currentUser.getProfilePictureURL()}"
+                                        <img th:if="${currentUser.hasProfilePicture()}" th:src="@{/storage/files/{key}(key=${currentUser.profilePictureKey})}"
                                              src="/assets/img/demo/user-placeholder.svg" class="img-account-profile rounded-circle mb-2" alt="">
                                         <img th:unless="${currentUser.hasProfilePicture()}" src="/assets/img/demo/user-placeholder.svg"
                                              class="img-account-profile rounded-circle mb-2" alt="">

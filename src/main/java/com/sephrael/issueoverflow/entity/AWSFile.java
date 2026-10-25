@@ -15,24 +15,22 @@ public class AWSFile {
 
     private String fileName;
 
+    @Column(nullable = false, unique = true)
     private String fileKey;
 
     private String type;
 
     private long size;
 
-    private String url;
-
     private boolean isProfilePicture;
 
     public AWSFile() {}
 
-    public AWSFile(String fileName, String fileKey, String type, long size, String url, boolean isProfilePicture) {
+    public AWSFile(String fileName, String fileKey, String type, long size, boolean isProfilePicture) {
         this.fileName = fileName;
         this.fileKey = fileKey;
         this.type = type;
         this.size = size;
-        this.url = url;
         this.isProfilePicture = isProfilePicture;
     }
 
@@ -91,14 +89,6 @@ public class AWSFile {
 
     public void setSize(long size) {
         this.size = size;
-    }
-
-    public String getUrl() {
-        return url;
-    }
-
-    public void setUrl(String url) {
-        this.url = url;
     }
 
     public boolean isProfilePicture() {

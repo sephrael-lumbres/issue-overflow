@@ -6,12 +6,17 @@ import com.sephrael.issueoverflow.repository.AWSFileRepository;
 import com.sephrael.issueoverflow.repository.UserRepository;
 import com.sephrael.issueoverflow.service.AWSFileService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.CacheControl;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.security.Principal;
+import java.time.Duration;
 import java.util.Objects;
 
 @Controller
@@ -64,6 +69,23 @@ public class AWSFileController {
             redirectAttributes.addFlashAttribute("pictureUploadError", "An error has occurred while attempting to upload Profile Picture");;
 
         return "redirect:/account/profile/" + userId;
+    }
+
+    // Redirects to a short-lived pre-signed S3 URL. The redirect may be cached privately for less time than the URL stays valid.
+    @GetMapping("/files/{fileKey}")
+    public ResponseEntity<Void> redirectToFile(@PathVariable("fileKey") String fileKey, Principal principal) {
+        User currentUser = userRepository.findByEmail(principal.getName());
+        AWSFile awsFile = awsFileRepository.findByFileKey(fileKey);
+
+        // Unknown keys and files from other organizations look the same. Throwing
+        // (instead of returning a 404 response) shows the app's 404 page.
+        if(awsFile == null || !awsFileService.canView(currentUser, awsFile))
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .location(awsFileService.presignedUrl(awsFile))
+                .cacheControl(CacheControl.maxAge(Duration.ofMinutes(5)).cachePrivate())
+                .build();
     }
 
     @RequestMapping("/{identifier}/{issueKey}/delete/{fileKey}")

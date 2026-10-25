@@ -79,7 +79,7 @@
                            href="javascript:void(0);" role="button" data-bs-toggle="dropdown" aria-haspopup="true"
                            aria-expanded="false">
                             <img th:if="${currentUser.hasProfilePicture()}"
-                                 th:src="${currentUser.getProfilePictureURL()}"
+                                 th:src="@{/storage/files/{key}(key=${currentUser.profilePictureKey})}"
                                  src="/assets/img/demo/user-placeholder.svg" class="img-fluid" alt="">
                             <img th:unless="${currentUser.hasProfilePicture()}" src="/assets/img/demo/user-placeholder.svg"
                                  class="img-fluid" alt="">
@@ -88,7 +88,7 @@
                              aria-labelledby="navbarDropdownUserImage">
                             <div class="h6 dropdown-header d-flex align-items-center">
                                 <img th:if="${currentUser.hasProfilePicture()}"
-                                     th:src="${currentUser.getProfilePictureURL()}"
+                                     th:src="@{/storage/files/{key}(key=${currentUser.profilePictureKey})}"
                                      src="/assets/img/demo/user-placeholder.svg" class="dropdown-user-img" alt="">
                                 <img th:unless="${currentUser.hasProfilePicture()}"
                                      src="/assets/img/demo/user-placeholder.svg"
