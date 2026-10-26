@@ -1,42 +1,33 @@
 package com.sephrael.issueoverflow;
 
-import com.sephrael.issueoverflow.entity.Role;
 import com.sephrael.issueoverflow.repository.RoleRepository;
-import com.sephrael.issueoverflow.support.PostgresTestBase;
+import com.sephrael.issueoverflow.support.RepositoryTestBase;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
-import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
-import org.springframework.test.annotation.Rollback;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Rollback(value = false)
-public class RoleRepositoryTests extends PostgresTestBase {
+// Uses role names the application never seeds, so the test does not depend on which roles already exist.
+class RoleRepositoryTests extends RepositoryTestBase {
 
     @Autowired
     private RoleRepository roleRepository;
 
     @Test
-    public void testCreateRoles() {
-        Role projectManager = new Role();
-        Role admin = new Role();
-        Role developer = new Role();
-        Role guest = new Role();
-
-        projectManager.setName("Project Manager");
-        admin.setName("Admin");
-        developer.setName("Developer");
-        guest.setName("Guest");
-
+    void testCreateRoles() {
         long rolesBefore = roleRepository.count();
 
-        roleRepository.saveAll(List.of(projectManager, admin, developer, guest));
+        roleRepository.saveAll(List.of(
+                newRole("Release Manager"),
+                newRole("Reviewer"),
+                newRole("Triager"),
+                newRole("Observer")
+        ));
+        flushAndClear();
 
         assertThat(roleRepository.count()).isEqualTo(rolesBefore + 4);
+        assertThat(roleRepository.findByName("Reviewer").getName()).isEqualTo("Reviewer");
     }
 }
