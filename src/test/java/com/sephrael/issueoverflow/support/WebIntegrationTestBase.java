@@ -107,7 +107,7 @@ public abstract class WebIntegrationTestBase {
     // Creates an enabled user with PASSWORD; organization may be null.
     protected User createUser(Organization organization, String roleName) {
         Role role = roleRepository.findByName(roleName);
-        assertThat(role).as("role '%s' seeded by SetupDataLoader", roleName).isNotNull();
+        assertThat(role).as("role '%s' seeded by migration V2", roleName).isNotNull();
         String suffix = uniqueSuffix();
         User user = new User();
         user.setEmail("user-" + suffix.toLowerCase() + "@example.test");
