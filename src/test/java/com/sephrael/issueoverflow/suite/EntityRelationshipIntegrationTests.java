@@ -1,274 +1,249 @@
 package com.sephrael.issueoverflow.suite;
 
-import com.sephrael.issueoverflow.entity.*;
-import com.sephrael.issueoverflow.repository.*;
-import com.sephrael.issueoverflow.support.PostgresTestBase;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Order;
+import com.sephrael.issueoverflow.entity.Comment;
+import com.sephrael.issueoverflow.entity.Issue;
+import com.sephrael.issueoverflow.entity.Organization;
+import com.sephrael.issueoverflow.entity.Project;
+import com.sephrael.issueoverflow.entity.User;
+import com.sephrael.issueoverflow.repository.CommentRepository;
+import com.sephrael.issueoverflow.repository.IssueRepository;
+import com.sephrael.issueoverflow.repository.OrganizationRepository;
+import com.sephrael.issueoverflow.repository.ProjectRepository;
+import com.sephrael.issueoverflow.repository.UserRepository;
+import com.sephrael.issueoverflow.support.RepositoryTestBase;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
-import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
-import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
-import org.springframework.test.annotation.Rollback;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Rollback(value = false)
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class EntityRelationshipIntegrationTests extends PostgresTestBase {
+class EntityRelationshipIntegrationTests extends RepositoryTestBase {
 
-    @Autowired
-    private TestEntityManager entityManager;
+    private static final String EMAIL = "user1@example.com";
+    private static final String ORGANIZATION_NAME = "Pied Piper";
+    private static final String ACCESS_KEY = "PP";
+    private static final String PROJECT_NAME = "Compression";
+    private static final String IDENTIFIER = "SV";
+    private static final String ISSUE_TITLE = "Data Schema Overwritten";
+    private static final String COMMENT_MESSAGE = "The Carver should double-check before merging";
 
     @Autowired
     private UserRepository userRepository;
-
     @Autowired
     private OrganizationRepository organizationRepository;
-
     @Autowired
     private ProjectRepository projectRepository;
-
     @Autowired
     private IssueRepository issueRepository;
-
     @Autowired
     private CommentRepository commentRepository;
 
-    @Test
-    @Order(1)
-    public void testCreateUser() {
-        User user = new User();
-        user.setEmail("user1@example.com");
-        user.setPassword("test-password-1");
-        user.setFirstName("Ravi");
-        user.setLastName("Kumar");
+    private User savedUser() {
+        return userRepository.save(newUser(EMAIL, "Ravi", "Kumar"));
+    }
 
-        User savedUser = userRepository.save(user);
+    private Organization savedOrganization() {
+        return organizationRepository.save(newOrganization(ORGANIZATION_NAME, ACCESS_KEY));
+    }
 
-        User existingUser = entityManager.find(User.class, savedUser.getId());
+    private Project savedProject(Organization organization) {
+        return projectRepository.save(newProject(organization, PROJECT_NAME, IDENTIFIER));
+    }
 
-        assertThat(user.getEmail()).isEqualTo(existingUser.getEmail());
+    private Issue savedIssue() {
+        return issueRepository.save(newIssue(ISSUE_TITLE, "The Carver has accidentally overwritten our Data Schema"));
+    }
+
+    private Comment savedComment() {
+        return commentRepository.save(newComment(COMMENT_MESSAGE));
+    }
+
+    private Project findProject() {
+        return projectRepository.findByIdentifierAndOrganization(IDENTIFIER,
+                organizationRepository.findByAccessKey(ACCESS_KEY));
     }
 
     @Test
-    @Order(2)
-    public void testCreateOrganization() {
-        Organization organization = new Organization();
-        organization.setName("Pied Piper");
-        organization.setAccessKey("PP");
+    void testCreateUser() {
+        User user = savedUser();
+        flushAndClear();
 
-        Organization savedOrganization = organizationRepository.save(organization);
-
-        Organization existingOrganization = entityManager.find(Organization.class, savedOrganization.getId());
-
-        assertThat(organization.getName()).isEqualTo(existingOrganization.getName());
+        assertThat(entityManager.find(User.class, user.getId()).getEmail()).isEqualTo(EMAIL);
     }
 
     @Test
-    @Order(3)
-    public void testCreateProject() {
-        Project project = new Project();
-        project.setName("Compression");
-        project.setIdentifier("SV");
-        project.setOrganization(organizationRepository.findByAccessKey("PP"));
+    void testCreateOrganization() {
+        Organization organization = savedOrganization();
+        flushAndClear();
 
-        Project savedProject = projectRepository.save(project);
-
-        Project existingProject = entityManager.find(Project.class, savedProject.getId());
-
-        assertThat(project.getName()).isEqualTo(existingProject.getName());
+        assertThat(entityManager.find(Organization.class, organization.getId()).getName()).isEqualTo(ORGANIZATION_NAME);
     }
 
     @Test
-    @Order(4)
-    public void testCreateIssue() {
-        Issue issue = new Issue();
-        issue.setTitle("Data Schema Overwritten");
-        issue.setDescription("The Carver has accidentally overwritten our Data Schema");
-        issue.setType("Bug");
-        issue.setPriority("High");
-        issue.setStatus("Open");
+    void testCreateProject() {
+        Project project = savedProject(savedOrganization());
+        flushAndClear();
 
-
-        Issue savedIssue = issueRepository.save(issue);
-
-        Issue existingIssue = entityManager.find(Issue.class, savedIssue.getId());
-
-        assertThat(issue.getTitle()).isEqualTo(existingIssue.getTitle());
+        assertThat(entityManager.find(Project.class, project.getId()).getName()).isEqualTo(PROJECT_NAME);
     }
 
     @Test
-    @Order(5)
-    public void testCreateComment() {
-        Comment comment = new Comment();
-        comment.setMessage("The Carver should double-check before merging");
+    void testCreateIssue() {
+        Issue issue = savedIssue();
+        flushAndClear();
 
-        Comment savedComment = commentRepository.save(comment);
-
-        Comment existingComment = entityManager.find(Comment.class, savedComment.getId());
-
-        assertThat(comment.getMessage()).isEqualTo(existingComment.getMessage());
+        assertThat(entityManager.find(Issue.class, issue.getId()).getTitle()).isEqualTo(ISSUE_TITLE);
     }
 
     @Test
-    @Order(6)
-    public void testUserToOrganizationConnection() {
-        User user = userRepository.findByEmail("user1@example.com");
-        user.setOrganization(organizationRepository.findByAccessKey("PP"));
+    void testCreateComment() {
+        Comment comment = savedComment();
+        flushAndClear();
 
+        assertThat(entityManager.find(Comment.class, comment.getId()).getMessage()).isEqualTo(COMMENT_MESSAGE);
+    }
+
+    @Test
+    void testUserToOrganizationConnection() {
+        Organization organization = savedOrganization();
+        User user = savedUser();
+        user.setOrganization(organization);
         userRepository.save(user);
+        flushAndClear();
 
-        User userWithOrganization = userRepository.findByEmail("user1@example.com");
-
-        assertThat(userWithOrganization.getOrganization().getName()).isEqualTo("Pied Piper");
+        assertThat(userRepository.findByEmail(EMAIL).getOrganization().getName()).isEqualTo(ORGANIZATION_NAME);
     }
 
     @Test
-    @Order(7)
-    public void testOrganizationToProjectConnection() {
-        Project project = projectRepository.findByIdentifierAndOrganization("SV",
-                organizationRepository.findByAccessKey("PP"));
+    void testOrganizationToProjectConnection() {
+        savedProject(savedOrganization());
+        flushAndClear();
 
+        assertThat(findProject().getOrganization().getName()).isEqualTo(ORGANIZATION_NAME);
+    }
+
+    @Test
+    void testUserToProjectConnection() {
+        Project project = savedProject(savedOrganization());
+        project.addUser(savedUser());
         projectRepository.save(project);
+        flushAndClear();
 
-        Project projectWithOrganization = projectRepository.findByIdentifierAndOrganization("SV",
-                organizationRepository.findByAccessKey("PP"));
-
-        assertThat(projectWithOrganization.getOrganization().getName()).isEqualTo("Pied Piper");
+        assertThat(findProject().getUsers())
+                .extracting(User::getEmail)
+                .containsExactly(EMAIL);
     }
 
     @Test
-    @Order(8)
-    public void testUserToProjectConnection() {
-        Project project = projectRepository.findByIdentifierAndOrganization("SV",
-                organizationRepository.findByAccessKey("PP"));
-        project.addUser(userRepository.findByEmail("user1@example.com"));
-
-        projectRepository.save(project);
-
-        Project projectWithUser = projectRepository.findByIdentifierAndOrganization("SV",
-                organizationRepository.findByAccessKey("PP"));
-
-        assertThat(projectWithUser.getUsers().get(0).getEmail()).isEqualTo("user1@example.com");
-    }
-
-    @Test
-    @Order(9)
-    public void testProjectToIssueConnection() {
-        Issue issue = issueRepository.findIssueByTitle("Data Schema Overwritten");
-        issue.setProject(projectRepository.findByIdentifierAndOrganization("SV",
-                organizationRepository.findByAccessKey("PP")));
-
+    void testProjectToIssueConnection() {
+        Project project = savedProject(savedOrganization());
+        Issue issue = savedIssue();
+        issue.setProject(project);
         issueRepository.save(issue);
+        flushAndClear();
 
-        Issue issueWithProject = issueRepository.findIssueByTitle("Data Schema Overwritten");
-
-        assertThat(issueWithProject.getTitle()).isEqualTo("Data Schema Overwritten");
+        assertThat(issueRepository.findIssueByTitle(ISSUE_TITLE).getProject().getIdentifier()).isEqualTo(IDENTIFIER);
     }
 
+    // Issue.user (the author) is not updatable, so it must be set before the first save, as the app does when an issue is created.
     @Test
-    @Order(10)
-    public void testUserToIssueConnection() {
-        Issue issue = issueRepository.findIssueByTitle("Data Schema Overwritten");
-        issue.setUser(userRepository.findByEmail("user1@example.com"));
-
+    void testUserToIssueConnection() {
+        Issue issue = newIssue(ISSUE_TITLE, "The Carver has accidentally overwritten our Data Schema");
+        issue.setUser(savedUser());
         issueRepository.save(issue);
+        flushAndClear();
 
-        Issue issueWithUser = issueRepository.findIssueByTitle("Data Schema Overwritten");
-
-        assertThat(issueWithUser.getUser().getEmail()).isEqualTo("user1@example.com");
+        assertThat(issueRepository.findIssueByTitle(ISSUE_TITLE).getUser().getEmail()).isEqualTo(EMAIL);
     }
 
+    // Comment.user (the author) is not updatable, so it must be set before the first save, as the app does when a comment is posted.
     @Test
-    @Order(11)
-    public void testUserToCommentConnection() {
-        Comment comment = commentRepository.findCommentByMessage("The Carver should double-check before merging");
-        comment.setUser(userRepository.findByEmail("user1@example.com"));
-
+    void testUserToCommentConnection() {
+        Comment comment = newComment(COMMENT_MESSAGE);
+        comment.setUser(savedUser());
         commentRepository.save(comment);
+        flushAndClear();
 
-        Comment commentWithUser = commentRepository.findCommentByMessage("The Carver should double-check before merging");
-
-        assertThat(commentWithUser.getUser().getEmail()).isEqualTo("user1@example.com");
+        assertThat(commentRepository.findCommentByMessage(COMMENT_MESSAGE).getUser().getEmail()).isEqualTo(EMAIL);
     }
 
     @Test
-    @Order(12)
-    public void testIssueToCommentConnection() {
-        Comment comment = commentRepository.findCommentByMessage("The Carver should double-check before merging");
-        comment.setIssue(issueRepository.findIssueByTitle("Data Schema Overwritten"));
-
+    void testIssueToCommentConnection() {
+        Issue issue = savedIssue();
+        Comment comment = savedComment();
+        comment.setIssue(issue);
         commentRepository.save(comment);
+        flushAndClear();
 
-        Comment commentWithIssue = commentRepository.findCommentByMessage("The Carver should double-check before merging");
-
-        assertThat(commentWithIssue.getIssue().getTitle()).isEqualTo("Data Schema Overwritten");
+        assertThat(commentRepository.findCommentByMessage(COMMENT_MESSAGE).getIssue().getTitle()).isEqualTo(ISSUE_TITLE);
     }
 
+    // Deletes a comment that belongs to a user and an issue. Only the comment row goes; the user and the issue stay.
     @Test
-    @Order(13)
-    public void testDeleteComment() {
-        Comment comment = commentRepository.findCommentByMessage("The Carver should double-check before merging");
+    void testDeleteComment() {
+        Comment comment = newComment(COMMENT_MESSAGE);
+        comment.setUser(savedUser());
+        comment.setIssue(savedIssue());
+        commentRepository.save(comment);
+        flushAndClear();
 
         commentRepository.deleteById(comment.getId());
+        flushAndClear();
 
-        Comment deletedComment = commentRepository.findCommentByMessage("The Carver should double-check before merging");
-
-        assertThat(deletedComment).isNull();
+        assertThat(commentRepository.findCommentByMessage(COMMENT_MESSAGE)).isNull();
     }
 
+    // Deletes an issue that belongs to a project and has an author.
     @Test
-    @Order(14)
-    public void testDeleteIssue() {
-        Issue issue = issueRepository.findIssueByTitle("Data Schema Overwritten");
+    void testDeleteIssue() {
+        Issue issue = newIssue(ISSUE_TITLE, "The Carver has accidentally overwritten our Data Schema");
+        issue.setProject(savedProject(savedOrganization()));
+        issue.setUser(savedUser());
+        issueRepository.save(issue);
+        flushAndClear();
 
         issueRepository.deleteById(issue.getId());
+        flushAndClear();
 
-        Issue deletedIssue = issueRepository.findIssueByTitle("Data Schema Overwritten");
-
-        assertThat(deletedIssue).isNull();
+        assertThat(issueRepository.findIssueByTitle(ISSUE_TITLE)).isNull();
     }
 
+    // Deletes a project that has a member. Its project_user row goes with it, so the delete doesn't fail on the join table's foreign key.
     @Test
-    @Order(15)
-    public void testDeleteProject() {
-        Project project = projectRepository.findByIdentifierAndOrganization("SV",
-                organizationRepository.findByAccessKey("PP"));
+    void testDeleteProject() {
+        Project project = savedProject(savedOrganization());
+        project.addUser(savedUser());
+        projectRepository.save(project);
+        flushAndClear();
 
         projectRepository.deleteById(project.getId());
+        flushAndClear();
 
-        Project deletedProject = projectRepository.findByIdentifierAndOrganization("SV",
-                organizationRepository.findByAccessKey("PP"));
-
-        assertThat(deletedProject).isNull();
+        assertThat(findProject()).isNull();
     }
 
+    // Deletes a user who belongs to an organization.
     @Test
-    @Order(16)
-    public void testDeleteUser() {
-        User user = userRepository.findByEmail("user1@example.com");
+    void testDeleteUser() {
+        User user = savedUser();
+        user.setOrganization(savedOrganization());
+        userRepository.save(user);
+        flushAndClear();
 
         userRepository.deleteById(user.getId());
+        flushAndClear();
 
-        User deletedUser = userRepository.findByEmail("user1@example.com");
-
-        assertThat(deletedUser).isNull();
+        assertThat(userRepository.findByEmail(EMAIL)).isNull();
     }
 
+    // Deletes an organization with no users or projects. That is the state the old suite reached by its last test, after removing everything else.
     @Test
-    @Order(17)
-    public void testDeleteOrganization() {
-        Organization organization = organizationRepository.findByAccessKey("PP");
+    void testDeleteOrganization() {
+        Organization organization = savedOrganization();
+        flushAndClear();
 
         organizationRepository.deleteById(organization.getId());
+        flushAndClear();
 
-        Organization deletedOrganization = organizationRepository.findByAccessKey("PP");
-
-        assertThat(deletedOrganization).isNull();
+        assertThat(organizationRepository.findByAccessKey(ACCESS_KEY)).isNull();
     }
 }

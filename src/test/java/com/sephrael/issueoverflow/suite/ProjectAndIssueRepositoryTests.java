@@ -8,29 +8,18 @@ import com.sephrael.issueoverflow.repository.CommentRepository;
 import com.sephrael.issueoverflow.repository.IssueRepository;
 import com.sephrael.issueoverflow.repository.OrganizationRepository;
 import com.sephrael.issueoverflow.repository.ProjectRepository;
-import com.sephrael.issueoverflow.support.PostgresTestBase;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Order;
+import com.sephrael.issueoverflow.support.RepositoryTestBase;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
-import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
-import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
-import org.springframework.test.annotation.Rollback;
-
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Rollback(value = false)
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class ProjectAndIssueRepositoryTests extends PostgresTestBase {
+class ProjectAndIssueRepositoryTests extends RepositoryTestBase {
 
-    @Autowired
-    private TestEntityManager entityManager;
+    private static final String ACCESS_KEY = "2K";
+    private static final String ISSUE_TITLE = "Wonky Dunk Animations";
+    private static final String COMMENT_MESSAGE = "This bug is very hard to recreate";
+
     @Autowired
     private IssueRepository issueRepository;
     @Autowired
@@ -40,265 +29,219 @@ public class ProjectAndIssueRepositoryTests extends PostgresTestBase {
     @Autowired
     private OrganizationRepository organizationRepository;
 
-    @Test
-    @Order(1)
-    public void testCreateOrganization() {
-        Organization organization = new Organization();
-        organization.setName("2K Games");
-        organization.setAccessKey("2K");
+    private Organization savedOrganization() {
+        return organizationRepository.save(newOrganization("2K Games", ACCESS_KEY));
+    }
 
-        Organization savedOrganization = organizationRepository.save(organization);
+    // The organization with the "NBA 2K" (NBA) and "WWE 2K" (WWE) projects.
+    private void saveTwoProjects() {
+        Organization organization = savedOrganization();
+        projectRepository.save(newProject(organization, "NBA 2K", "NBA"));
+        projectRepository.save(newProject(organization, "WWE 2K", "WWE"));
+    }
 
-        Organization existingOrganization = entityManager.find(Organization.class, savedOrganization.getId());
+    // Both projects, plus the issue in NBA with one comment.
+    private void saveIssueWithCommentInFirstProject() {
+        saveTwoProjects();
+        Issue issue = issueRepository.save(newIssue(ISSUE_TITLE, "When a player performs a dunk, the character sprite is upside down"));
+        issue.setProject(findProject("NBA"));
+        issueRepository.save(issue);
+        Comment comment = commentRepository.save(newComment(COMMENT_MESSAGE));
+        comment.setIssue(issue);
+        commentRepository.save(comment);
+        flushAndClear();
+    }
 
-        assertThat(organization.getName()).isEqualTo(existingOrganization.getName());
+    private Project findProject(String identifier) {
+        return projectRepository.findByIdentifierAndOrganization(identifier, organizationRepository.findByAccessKey(ACCESS_KEY));
     }
 
     @Test
-    @Order(2)
-    public void testCreateTwoProjects() {
-        Project project1 = new Project();
-        project1.setName("NBA 2K");
-        project1.setIdentifier("NBA");
-        project1.setOrganization(organizationRepository.findByAccessKey("2K"));
-        Project savedProject1 = projectRepository.save(project1);
-        Project existingProject1 = entityManager.find(Project.class, savedProject1.getId());
+    void testCreateOrganization() {
+        Organization organization = savedOrganization();
+        flushAndClear();
 
-        Project project2 = new Project();
-        project2.setName("WWE 2K");
-        project2.setIdentifier("WWE");
-        project2.setOrganization(organizationRepository.findByAccessKey("2K"));
-        Project savedProject2 = projectRepository.save(project2);
-        Project existingProject2 = entityManager.find(Project.class, savedProject2.getId());
-
-        assertThat(project1.getName()).isEqualTo(existingProject1.getName());
-        assertThat(project2.getName()).isEqualTo(existingProject2.getName());
+        assertThat(entityManager.find(Organization.class, organization.getId()).getName()).isEqualTo("2K Games");
     }
 
     @Test
-    @Order(3)
-    public void testFindProjectsByIdentifier() {
-        Project project1 = projectRepository.findByIdentifierAndOrganization("NBA",
-                organizationRepository.findByAccessKey("2K"));
-        assertThat(project1.getIdentifier()).isEqualTo("NBA");
+    void testCreateTwoProjects() {
+        Organization organization = savedOrganization();
+        Project project1 = projectRepository.save(newProject(organization, "NBA 2K", "NBA"));
+        Project project2 = projectRepository.save(newProject(organization, "WWE 2K", "WWE"));
+        flushAndClear();
 
-        Project project2 = projectRepository.findByIdentifierAndOrganization("WWE",
-                organizationRepository.findByAccessKey("2K"));
-        assertThat(project2.getIdentifier()).isEqualTo("WWE");
+        assertThat(entityManager.find(Project.class, project1.getId()).getName()).isEqualTo("NBA 2K");
+        assertThat(entityManager.find(Project.class, project2.getId()).getName()).isEqualTo("WWE 2K");
     }
 
     @Test
-    @Order(4)
-    public void testListProjects() {
-        List<Project> projects = (List<Project>) projectRepository.findAll();
-        assertThat(projects).size().isGreaterThan(0);
+    void testFindProjectsByIdentifier() {
+        saveTwoProjects();
+        flushAndClear();
+
+        assertThat(findProject("NBA").getIdentifier()).isEqualTo("NBA");
+        assertThat(findProject("WWE").getIdentifier()).isEqualTo("WWE");
     }
 
     @Test
-    @Order(5)
-    public void testUpdateProjects() {
-        Project project1 = projectRepository.findByIdentifierAndOrganization("NBA",
-                organizationRepository.findByAccessKey("2K"));
+    void testListProjects() {
+        saveTwoProjects();
+        flushAndClear();
+
+        assertThat(projectRepository.findAll())
+                .extracting(Project::getIdentifier)
+                .contains("NBA", "WWE");
+    }
+
+    @Test
+    void testUpdateProjects() {
+        saveTwoProjects();
+        flushAndClear();
+
+        Project project1 = findProject("NBA");
         project1.setName("NBA 2K22");
         projectRepository.save(project1);
-        Project updatedProject1 = projectRepository.findByIdentifierAndOrganization("NBA",
-                organizationRepository.findByAccessKey("2K"));
-
-        Project project2 = projectRepository.findByIdentifierAndOrganization("WWE",
-                organizationRepository.findByAccessKey("2K"));
+        Project project2 = findProject("WWE");
         project2.setName("WWE 2K22");
         projectRepository.save(project2);
-        Project updatedProject2 = projectRepository.findByIdentifierAndOrganization("WWE",
-                organizationRepository.findByAccessKey("2K"));
+        flushAndClear();
 
-        assertThat(updatedProject1.getName()).isEqualTo("NBA 2K22");
-        assertThat(updatedProject2.getName()).isEqualTo("WWE 2K22");
+        assertThat(findProject("NBA").getName()).isEqualTo("NBA 2K22");
+        assertThat(findProject("WWE").getName()).isEqualTo("WWE 2K22");
     }
 
     @Test
-    @Order(6)
-    public void testCreateIssue() {
-        Issue issue = new Issue();
-        issue.setTitle("Wonky Dunk Animations");
-        issue.setDescription("When a player performs a dunk, the character sprite is upside down");
-        issue.setType("Bug");
-        issue.setPriority("High");
-        issue.setStatus("Open");
+    void testCreateIssue() {
+        Issue issue = issueRepository.save(newIssue(ISSUE_TITLE, "When a player performs a dunk, the character sprite is upside down"));
+        flushAndClear();
 
-        Issue savedIssue = issueRepository.save(issue);
-
-        Issue existingIssue = entityManager.find(Issue.class, savedIssue.getId());
-
-        assertThat(issue.getTitle()).isEqualTo(existingIssue.getTitle());
+        assertThat(entityManager.find(Issue.class, issue.getId()).getTitle()).isEqualTo(ISSUE_TITLE);
     }
 
     @Test
-    @Order(7)
-    public void testCreateComment() {
-        Comment comment = new Comment();
-        comment.setMessage("This bug is very hard to recreate");
+    void testCreateComment() {
+        Comment comment = commentRepository.save(newComment(COMMENT_MESSAGE));
+        flushAndClear();
 
-        Comment savedComment = commentRepository.save(comment);
-
-        Comment existingComment = entityManager.find(Comment.class, savedComment.getId());
-
-        assertThat(comment.getMessage()).isEqualTo(existingComment.getMessage());
+        assertThat(entityManager.find(Comment.class, comment.getId()).getMessage()).isEqualTo(COMMENT_MESSAGE);
     }
 
     @Test
-    @Order(8)
-    public void testAddCommentToIssue() {
-        Issue issue = issueRepository.findIssueByTitle("Wonky Dunk Animations");
-        Comment comment = commentRepository.findCommentByMessage("This bug is very hard to recreate");
+    void testAddCommentToIssue() {
+        saveIssueWithCommentInFirstProject();
 
-        comment.setIssue(issue);
-        commentRepository.save(comment);
-
-        Comment commentWithIssue = commentRepository.findCommentByMessage("This bug is very hard to recreate");
-
-        assertThat(commentWithIssue.getIssue().getTitle()).isEqualTo("Wonky Dunk Animations");
+        assertThat(commentRepository.findCommentByMessage(COMMENT_MESSAGE).getIssue().getTitle()).isEqualTo(ISSUE_TITLE);
     }
 
     @Test
-    @Order(9)
-    public void testAddIssueToProject() {
-        Issue issue = issueRepository.findIssueByTitle("Wonky Dunk Animations");
-        issue.setProject(projectRepository.findByIdentifierAndOrganization("NBA",
-                organizationRepository.findByAccessKey("2K")));
+    void testAddIssueToProject() {
+        saveIssueWithCommentInFirstProject();
 
+        assertThat(issueRepository.findIssueByTitle(ISSUE_TITLE).getProject().getIdentifier()).isEqualTo("NBA");
+    }
+
+    @Test
+    void testSwitchIssueWithCommentToDifferentProject() {
+        saveIssueWithCommentInFirstProject();
+
+        Issue issue = issueRepository.findIssueByTitle(ISSUE_TITLE);
+        issue.setProject(findProject("WWE"));
         issueRepository.save(issue);
+        flushAndClear();
 
-        Issue issueWithProject = issueRepository.findIssueByTitle("Wonky Dunk Animations");
-
-        assertThat(issueWithProject.getTitle()).isEqualTo("Wonky Dunk Animations");
+        assertThat(issueRepository.findIssueByTitle(ISSUE_TITLE).getProject().getName()).isEqualTo("WWE 2K");
+        assertThat(commentRepository.findCommentByMessage(COMMENT_MESSAGE).getIssue().getTitle()).isEqualTo(ISSUE_TITLE);
     }
 
     @Test
-    @Order(10)
-    public void testSwitchIssueWithCommentToDifferentProject() {
-        Issue issue = issueRepository.findIssueByTitle("Wonky Dunk Animations");
-        issue.setProject(projectRepository.findByIdentifierAndOrganization("WWE",
-                organizationRepository.findByAccessKey("2K")));
-        Comment comment = commentRepository.findCommentByMessage("This bug is very hard to recreate");
+    void testUpdateIssueAfterProjectSwitch() {
+        saveIssueWithCommentInFirstProject();
+        Issue switchedIssue = issueRepository.findIssueByTitle(ISSUE_TITLE);
+        switchedIssue.setProject(findProject("WWE"));
+        issueRepository.save(switchedIssue);
+        flushAndClear();
 
-        issueRepository.save(issue);
-
-        Issue issueWithDifferentProject = issueRepository.findIssueByTitle("Wonky Dunk Animations");
-
-        assertThat(issueWithDifferentProject.getProject().getName()).isEqualTo("WWE 2K22");
-        assertThat(comment.getIssue().getTitle()).isEqualTo("Wonky Dunk Animations");
-    }
-
-    @Test
-    @Order(11)
-    public void testUpdateIssueAfterProjectSwitch() {
-        Issue issue = issueRepository.findIssueByTitle("Wonky Dunk Animations");
-        Comment comment = commentRepository.findCommentByMessage("This bug is very hard to recreate");
+        Issue issue = issueRepository.findIssueByTitle(ISSUE_TITLE);
         issue.setStatus("Closed");
         issueRepository.save(issue);
+        flushAndClear();
 
-        Issue updatedIssue = issueRepository.findIssueByTitle("Wonky Dunk Animations");
-
+        Issue updatedIssue = issueRepository.findIssueByTitle(ISSUE_TITLE);
         assertThat(updatedIssue.getStatus()).isEqualTo("Closed");
-        assertThat(updatedIssue.getProject().getName()).isEqualTo("WWE 2K22");
-        assertThat(comment.getIssue().getTitle()).isEqualTo("Wonky Dunk Animations");
+        assertThat(updatedIssue.getProject().getName()).isEqualTo("WWE 2K");
+        assertThat(commentRepository.findCommentByMessage(COMMENT_MESSAGE).getIssue().getTitle()).isEqualTo(ISSUE_TITLE);
+    }
+
+    // As in the old ordered tests, one of the deleted projects holds an issue with a comment.
+    @Test
+    void testDeleteProjects() {
+        saveIssueWithCommentInFirstProject();
+
+        projectRepository.deleteById(findProject("WWE").getId());
+        projectRepository.deleteById(findProject("NBA").getId());
+        flushAndClear();
+
+        assertThat(findProject("WWE")).isNull();
+        assertThat(findProject("NBA")).isNull();
     }
 
     @Test
-    @Order(12)
-    public void testDeleteProjects() {
-        Project project1 = projectRepository.findByIdentifierAndOrganization("WWE",
-                organizationRepository.findByAccessKey("2K"));
-        Project project2 = projectRepository.findByIdentifierAndOrganization("NBA",
-                organizationRepository.findByAccessKey("2K"));
+    void testIssueAndCommentAreDeletedWhenParentProjectHasBeenDeleted() {
+        saveIssueWithCommentInFirstProject();
 
-        projectRepository.deleteById(project1.getId());
-        projectRepository.deleteById(project2.getId());
+        projectRepository.deleteById(findProject("NBA").getId());
+        flushAndClear();
 
-        Project deletedProject1 = projectRepository.findByIdentifierAndOrganization("WWE",
-                organizationRepository.findByAccessKey("2K"));
-        Project deletedProject2 = projectRepository.findByIdentifierAndOrganization("NBA",
-                organizationRepository.findByAccessKey("2K"));
-
-        assertThat(deletedProject1).isNull();
-        assertThat(deletedProject2).isNull();
+        assertThat(issueRepository.findIssueByTitle(ISSUE_TITLE)).isNull();
+        assertThat(commentRepository.findCommentByMessage(COMMENT_MESSAGE)).isNull();
     }
 
     @Test
-    @Order(13)
-    public void testIssueAndCommentAreDeletedWhenParentProjectHasBeenDeleted() {
-        Issue issue = issueRepository.findIssueByTitle("Wonky Dunk Animations");
-        Comment comment = commentRepository.findCommentByMessage("This bug is very hard to recreate");
-
-        assertThat(issue).isNull();
-        assertThat(comment).isNull();
-    }
-
-    @Test
-    @Order(14)
-    public void testCreateProjectIssueAndCommentWithoutSwitching() {
-
-        // creates a new project
-        Project project = new Project();
-        project.setName("MLB 2K");
-        project.setIdentifier("MLB");
-        project.setOrganization(organizationRepository.findByAccessKey("2K"));
-        projectRepository.save(project);
-
-        // creates a new issue
-        Issue issue = new Issue();
-        issue.setTitle("Incorrect Baseball Bat Sprite");
-        issue.setDescription("Baseball bat sprite shows the wrong item");
-        issue.setType("Bug");
-        issue.setPriority("High");
-        issue.setStatus("Open");
-        issueRepository.save(issue);
-
-        // creates a new comment
-        Comment comment = new Comment();
-        comment.setMessage("I wonder who drew that sprite");
-        commentRepository.save(comment);
-
-        // adds comment to issue
+    void testCreateProjectIssueAndCommentWithoutSwitching() {
+        Organization organization = savedOrganization();
+        Project project = projectRepository.save(newProject(organization, "MLB 2K", "MLB"));
+        Issue issue = issueRepository.save(newIssue("Incorrect Baseball Bat Sprite", "Baseball bat sprite shows the wrong item"));
+        Comment comment = commentRepository.save(newComment("I wonder who drew that sprite"));
         comment.setIssue(issue);
         commentRepository.save(comment);
-
-        // adds issue to project
-        issue.setProject(projectRepository.findByIdentifierAndOrganization("MLB",
-                organizationRepository.findByAccessKey("2K")));
+        issue.setProject(project);
         issueRepository.save(issue);
+        flushAndClear();
 
-        assertThat(issue.getProject()).isEqualTo(projectRepository.findByIdentifierAndOrganization("MLB",
-                organizationRepository.findByAccessKey("2K")));
+        Issue reloadedIssue = issueRepository.findIssueByTitle("Incorrect Baseball Bat Sprite");
+        assertThat(reloadedIssue.getProject().getId()).isEqualTo(findProject("MLB").getId());
+        assertThat(commentRepository.findCommentByMessage("I wonder who drew that sprite").getIssue().getId()).isEqualTo(reloadedIssue.getId());
     }
 
     @Test
-    @Order(15)
-    public void testDeleteProjectWithoutSwitchingIssueToDifferentProject() {
-        Project project = projectRepository.findByIdentifierAndOrganization("MLB",
-                organizationRepository.findByAccessKey("2K"));
+    void testDeleteProjectWithoutSwitchingIssueToDifferentProject() {
+        Organization organization = savedOrganization();
+        Project project = projectRepository.save(newProject(organization, "MLB 2K", "MLB"));
+        Issue issue = issueRepository.save(newIssue("Incorrect Baseball Bat Sprite", "Baseball bat sprite shows the wrong item"));
+        issue.setProject(project);
+        issueRepository.save(issue);
+        Comment comment = commentRepository.save(newComment("I wonder who drew that sprite"));
+        comment.setIssue(issue);
+        commentRepository.save(comment);
+        flushAndClear();
 
-        // deletes the project with the issue and comment
-        projectRepository.deleteById(project.getId());
-        Project deletedProject = projectRepository.findByIdentifierAndOrganization("MLB",
-                organizationRepository.findByAccessKey("2K"));
-        Issue deletedIssue = issueRepository.findIssueByTitle("Incorrect Baseball Bat Sprite");
-        Comment deletedComment = commentRepository.findCommentByMessage("I wonder who drew that sprite");
+        projectRepository.deleteById(findProject("MLB").getId());
+        flushAndClear();
 
-        assertThat(deletedProject).isNull();
-        assertThat(deletedIssue).isNull();
-        assertThat(deletedComment).isNull();
+        assertThat(findProject("MLB")).isNull();
+        assertThat(issueRepository.findIssueByTitle("Incorrect Baseball Bat Sprite")).isNull();
+        assertThat(commentRepository.findCommentByMessage("I wonder who drew that sprite")).isNull();
     }
 
     @Test
-    @Order(16)
-    public void testDeleteOrganization() {
-        Organization organization = organizationRepository.findByAccessKey("2K");
+    void testDeleteOrganization() {
+        Organization organization = savedOrganization();
+        flushAndClear();
 
         organizationRepository.deleteById(organization.getId());
+        flushAndClear();
 
-        Organization deletedOrganization = organizationRepository.findByAccessKey("2K");
-
-        assertThat(deletedOrganization).isNull();
+        assertThat(organizationRepository.findByAccessKey(ACCESS_KEY)).isNull();
     }
 }

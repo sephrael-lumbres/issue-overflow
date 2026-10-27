@@ -32,11 +32,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * Base class for the full-stack regression tests.
  * <p>
- * Uses its own Postgres container, separate from PostgresTestBase. The older
- * repository tests commit data and recreate the schema whenever their Spring
- * context starts, so sharing their database would make these tests depend on
- * class execution order. Subclasses must not add Spring test annotations, so
- * that they all share one Spring context.
+ * These tests commit their data (nothing rolls back), so they use their own
+ * Postgres container, separate from the rolled-back repository tests in
+ * PostgresTestBase, and neither suite can see the other's rows. Fixtures use
+ * unique random suffixes for the same reason. Subclasses must not add Spring
+ * test annotations, so that they all share one Spring context.
  * <p>
  * S3 calls go to an S3Mock container (path-style, signatures not checked)
  * that starts with the bucket named in application-test.properties.
@@ -107,7 +107,7 @@ public abstract class WebIntegrationTestBase {
     // Creates an enabled user with PASSWORD; organization may be null.
     protected User createUser(Organization organization, String roleName) {
         Role role = roleRepository.findByName(roleName);
-        assertThat(role).as("role '%s' seeded by SetupDataLoader", roleName).isNotNull();
+        assertThat(role).as("role '%s' seeded by migration V2", roleName).isNotNull();
         String suffix = uniqueSuffix();
         User user = new User();
         user.setEmail("user-" + suffix.toLowerCase() + "@example.test");

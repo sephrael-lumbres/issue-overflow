@@ -1,87 +1,75 @@
 package com.sephrael.issueoverflow.suite.unit;
 
+import com.sephrael.issueoverflow.entity.User;
+import com.sephrael.issueoverflow.repository.UserRepository;
+import com.sephrael.issueoverflow.support.RepositoryTestBase;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.sephrael.issueoverflow.entity.*;
-import com.sephrael.issueoverflow.repository.*;
-import com.sephrael.issueoverflow.support.PostgresTestBase;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Order;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
-import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
-import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
-import org.springframework.test.annotation.Rollback;
+class UserUnitTests extends RepositoryTestBase {
 
-import java.util.List;
+    private static final String EMAIL = "user1@example.com";
 
-@DataJpaTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Rollback(value = false)
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class UserUnitTests extends PostgresTestBase {
-
-    @Autowired
-    private TestEntityManager entityManager;
     @Autowired
     private UserRepository userRepository;
 
-    @Test
-    @Order(1)
-    public void testCreateUser() {
-        User user = new User();
-        user.setId(user.getId());
-        user.setEmail("user1@example.com");
-        user.setPassword("test-password-1");
-        user.setFirstName("Ravi");
-        user.setLastName("Kumar");
-
-        User savedUser = userRepository.save(user);
-
-        User existingUser = entityManager.find(User.class, savedUser.getId());
-
-        assertThat(user.getEmail()).isEqualTo(existingUser.getEmail());
-        assertThat(user.getId()).isEqualTo(existingUser.getId());
+    private User savedUser() {
+        return userRepository.save(newUser(EMAIL, "Ravi", "Kumar"));
     }
 
     @Test
-    @Order(2)
-    public void testFindUserByEmail() {
-        User user = userRepository.findByEmail("user1@example.com");
-        assertThat(user.getEmail()).isEqualTo("user1@example.com");
+    void testCreateUser() {
+        User user = savedUser();
+        flushAndClear();
+
+        User existingUser = entityManager.find(User.class, user.getId());
+
+        assert existingUser != null;
+        assertThat(existingUser.getEmail()).isEqualTo(EMAIL);
+        assertThat(existingUser.getId()).isEqualTo(user.getId());
     }
 
     @Test
-    @Order(3)
-    public void testListUsers() {
-        List<User> users = (List<User>) userRepository.findAll();
-        assertThat(users).size().isGreaterThan(0);
+    void testFindUserByEmail() {
+        savedUser();
+        flushAndClear();
+
+        assertThat(userRepository.findByEmail(EMAIL).getFirstName()).isEqualTo("Ravi");
     }
 
     @Test
-    @Order(4)
-    public void testUpdateUser() {
-        User user = userRepository.findByEmail("user1@example.com");
+    void testListUsers() {
+        User user = savedUser();
+        flushAndClear();
+
+        assertThat(userRepository.findAll())
+                .extracting(User::getId)
+                .contains(user.getId());
+    }
+
+    @Test
+    void testUpdateUser() {
+        savedUser();
+        flushAndClear();
+
+        User user = userRepository.findByEmail(EMAIL);
         user.setPassword("password");
-
         userRepository.save(user);
+        flushAndClear();
 
-        User updatedUser = userRepository.findByEmail("user1@example.com");
-
-        assertThat(updatedUser.getPassword()).isEqualTo("password");
+        assertThat(userRepository.findByEmail(EMAIL).getPassword()).isEqualTo("password");
     }
 
     @Test
-    @Order(5)
-    public void testDeleteUser() {
-        User user = userRepository.findByEmail("user1@example.com");
+    void testDeleteUser() {
+        User user = savedUser();
+        flushAndClear();
 
         userRepository.deleteById(user.getId());
+        flushAndClear();
 
-        User deletedUser = userRepository.findByEmail("user1@example.com");
-
-        assertThat(deletedUser).isNull();
+        assertThat(userRepository.findByEmail(EMAIL)).isNull();
     }
 }

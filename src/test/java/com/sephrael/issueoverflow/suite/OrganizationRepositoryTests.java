@@ -2,82 +2,73 @@ package com.sephrael.issueoverflow.suite;
 
 import com.sephrael.issueoverflow.entity.Organization;
 import com.sephrael.issueoverflow.repository.OrganizationRepository;
-import com.sephrael.issueoverflow.support.PostgresTestBase;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Order;
+import com.sephrael.issueoverflow.support.RepositoryTestBase;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
-import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
-import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
-import org.springframework.test.annotation.Rollback;
-
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Rollback(value = false)
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class OrganizationRepositoryTests extends PostgresTestBase {
+class OrganizationRepositoryTests extends RepositoryTestBase {
 
-    @Autowired
-    private TestEntityManager entityManager;
     @Autowired
     private OrganizationRepository organizationRepository;
 
-    @Test
-    @Order(1)
-    public void testCreateOrganization() {
-        Organization organization = new Organization();
-        organization.setName("Call of Duty");
-        organization.setAccessKey("COD");
-
-        Organization savedOrganization = organizationRepository.save(organization);
-
-        Organization existingOrganization = entityManager.find(Organization.class, savedOrganization.getId());
-
-        assertThat(organization.getAccessKey()).isEqualTo(existingOrganization.getAccessKey());
+    private Organization savedOrganization() {
+        return organizationRepository.save(newOrganization("Call of Duty", "COD"));
     }
 
     @Test
-    @Order(2)
-    public void testFindOrganizationByAccessKey() {
+    void testCreateOrganization() {
+        Organization organization = savedOrganization();
+        flushAndClear();
+
+        Organization existingOrganization = entityManager.find(Organization.class, organization.getId());
+
+        assert existingOrganization != null;
+        assertThat(existingOrganization.getAccessKey()).isEqualTo("COD");
+    }
+
+    @Test
+    void testFindOrganizationByAccessKey() {
+        savedOrganization();
+        flushAndClear();
+
         Organization organization = organizationRepository.findByAccessKey("COD");
-        assertThat(organization.getAccessKey()).isEqualTo("COD");
+
+        assertThat(organization.getName()).isEqualTo("Call of Duty");
     }
 
     @Test
-    @Order(3)
-    public void testListOrganizations() {
-        List<Organization> organizations = (List<Organization>) organizationRepository.findAll();
-        assertThat(organizations).size().isGreaterThan(0);
+    void testListOrganizations() {
+        Organization organization = savedOrganization();
+        flushAndClear();
+
+        assertThat(organizationRepository.findAll())
+                .extracting(Organization::getId)
+                .contains(organization.getId());
     }
 
     @Test
-    @Order(4)
-    public void testUpdateOrganization() {
+    void testUpdateOrganization() {
+        savedOrganization();
+        flushAndClear();
+
         Organization organization = organizationRepository.findByAccessKey("COD");
         organization.setName("Activision");
-
         organizationRepository.save(organization);
+        flushAndClear();
 
-        Organization updatedOrganization = organizationRepository.findByAccessKey("COD");
-
-        assertThat(updatedOrganization.getName()).isEqualTo("Activision");
+        assertThat(organizationRepository.findByAccessKey("COD").getName()).isEqualTo("Activision");
     }
 
     @Test
-    @Order(5)
-    public void testDeleteOrganization() {
-        Organization organization = organizationRepository.findByAccessKey("COD");
+    void testDeleteOrganization() {
+        Organization organization = savedOrganization();
+        flushAndClear();
 
         organizationRepository.deleteById(organization.getId());
+        flushAndClear();
 
-        Organization deletedOrganization = organizationRepository.findByAccessKey("COD");
-
-        assertThat(deletedOrganization).isNull();
+        assertThat(organizationRepository.findByAccessKey("COD")).isNull();
     }
 }
