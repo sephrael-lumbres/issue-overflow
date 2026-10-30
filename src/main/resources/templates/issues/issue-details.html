@@ -367,11 +367,13 @@
                                     <a th:href="@{/storage/files/{key}(key=${attachment.fileKey})}" th:text="${attachment.getFileName()}" id="attachments" target="_blank"></a>
                                     <span th:if="${attachment.size < 1000000}" th:text="'(' + ${attachment.size / 1000} + ' KB, ' + ${#temporals.format(attachment.dateCreated, 'dd MMM yyyy HH:mm:ss')} + ')'" style="font-size: 12px;"></span>
                                     <span th:if="${attachment.size > 999999}" th:text="'(' + ${#numbers.formatDecimal((attachment.size * 1.0) / 1000000, 1, 1)} + ' MB, ' + ${#temporals.format(attachment.dateCreated, 'dd MMM yyyy HH:mm:ss')} + ')'" style="font-size: 12px;"></span>
-                                    <a th:if="${attachment.getUser().getId() == currentUser.getId()}" class="btn-transparent-dark"
-                                       th:href="@{'/storage/' + ${currentProject.identifier} + '/' + ${issue.issueKey} + '/delete/' + ${attachment.fileKey}}"
-                                       th:attr="onclick=|return confirm('Are you sure you want to delete &quot;${attachment.fileName}&quot;?')|">
-                                        <i data-feather="trash-2" class="mt-1"></i>
-                                    </a>
+                                    <form th:if="${attachment.getUser().getId() == currentUser.getId()}" class="d-inline" method="post"
+                                          th:action="@{'/storage/' + ${currentProject.identifier} + '/' + ${issue.issueKey} + '/delete/' + ${attachment.fileKey}}">
+                                        <button type="submit" class="btn btn-link p-0 btn-transparent-dark"
+                                                th:attr="data-confirm=|Are you sure you want to delete &quot;${attachment.fileName}&quot;?|">
+                                            <i data-feather="trash-2" class="mt-1"></i>
+                                        </button>
+                                    </form>
                                 </div>
                             </div>
                         </div>
@@ -388,11 +390,13 @@
                                             <div th:text="${comment.user.getFullName()}" class="fw-bold mb-n2"></div>
                                                 <div th:if="${comment.user==currentUser}" style="position: absolute; left: 91.5%;">
                                                     <a th:id="'editCommentButton' + ${list.index}" onclick="editComment(this)" class="btn-lg btn-icon btn-transparent-dark me-2 editCommentButton" href="javascript:void(0);"><i data-feather="edit"></i></a>
-                                                    <a class="btn-lg btn-icon btn-transparent-dark"
-                                                       th:href="@{'/issues/' + ${currentProject.identifier} + '/view/' + ${issue.issueKey} + '/comment/' + ${comment.id} + '/delete'}"
-                                                       onclick="return confirm('Are you sure you want to delete this comment?');">
-                                                        <i data-feather="trash-2"></i>
-                                                    </a>
+                                                    <form class="d-inline" method="post"
+                                                          th:action="@{'/issues/' + ${currentProject.identifier} + '/view/' + ${issue.issueKey} + '/comment/' + ${comment.id} + '/delete'}">
+                                                        <button type="submit" class="btn btn-lg btn-icon btn-transparent-dark"
+                                                                data-confirm="Are you sure you want to delete this comment?">
+                                                            <i data-feather="trash-2"></i>
+                                                        </button>
+                                                    </form>
                                                 </div>
                                             <span th:text="${#temporals.format(comment.dateCreated, 'dd MMM yyyy HH:mm:ss')}" style="font-size: 12px;"></span>
                                         </div>
@@ -622,6 +626,7 @@
         <script src="https://cdn.jsdelivr.net/npm/showdown@1.9.1/dist/showdown.min.js" crossorigin="anonymous"></script>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
         <script src="/js/scripts.js"></script>
+        <script src="/js/confirm-submit.js"></script>
         <script src="/js/markdown.js"></script>
         <script src="/js/simple-datatables.js"></script>
         <script>

@@ -1,5 +1,6 @@
 package com.sephrael.issueoverflow.controller;
 
+import com.sephrael.issueoverflow.controller.form.ProfileForm;
 import com.sephrael.issueoverflow.entity.Organization;
 import com.sephrael.issueoverflow.entity.Project;
 import com.sephrael.issueoverflow.entity.User;
@@ -44,9 +45,9 @@ public class AccountController {
         if(currentUser.getOrganization() == null)
             return "organization/select-organization";
 
-        // checks if the the requested Account Profile page matches the Current User
+        // checks if the requested Account Profile page matches the Current User
         if(currentUser.getId() != id)
-            return "error/404";
+            throw OrganizationScope.notFound();
 
         model.addAttribute("user", userRepository.getReferenceById(id));
         model.addAttribute("newProject", new Project());
@@ -57,7 +58,7 @@ public class AccountController {
     }
 
     @PostMapping("/profile/{id}/save")
-    public String saveAccountProfileChanges(@PathVariable("id") long id, User user, Principal principal,
+    public String saveAccountProfileChanges(@PathVariable("id") long id, ProfileForm form, Principal principal,
                                             RedirectAttributes redirectAttributes,
                                             HttpServletRequest request, HttpServletResponse response) {
         User currentUser = userRepository.findByEmail(principal.getName());
@@ -66,19 +67,18 @@ public class AccountController {
             return "organization/select-organization";
 
         if(currentUser.getId() != id)
-            return "error/404";
+            throw OrganizationScope.notFound();
 
         try {
             User userToBeUpdated = userRepository.findUserById(id);
             String previousEmail = userToBeUpdated.getEmail();
 
-            userToBeUpdated.setFirstName(user.getFirstName());
-            userToBeUpdated.setLastName(user.getLastName());
-            userToBeUpdated.setEmail(user.getEmail());
-
+            userToBeUpdated.setFirstName(form.firstName());
+            userToBeUpdated.setLastName(form.lastName());
+            userToBeUpdated.setEmail(form.email());
             userRepository.save(userToBeUpdated);
 
-            if(!Objects.equals(previousEmail, user.getEmail())) {
+            if(!Objects.equals(previousEmail, form.email())) {
                 redirectAttributes.addFlashAttribute("emailChangeSuccess", "Email address has been successfully updated. Please log in with your new email address.");
                 new SecurityContextLogoutHandler().logout(request, response, SecurityContextHolder.getContext().getAuthentication());
                 return "redirect:/login";
@@ -99,7 +99,7 @@ public class AccountController {
             return "organization/select-organization";
 
         if(currentUser.getId() != id)
-            return "error/404";
+            throw OrganizationScope.notFound();
 
         model.addAttribute("newProject", new Project());
         model.addAttribute("user", userRepository.getReferenceById(id));
@@ -120,7 +120,7 @@ public class AccountController {
             return "organization/select-organization";
 
         if(currentUser.getId() != id)
-            return "error/404";
+            throw OrganizationScope.notFound();
 
         User userToBeUpdated = userRepository.findUserById(id);
         BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
@@ -144,18 +144,17 @@ public class AccountController {
         return "redirect:/account/security/" + id;
     }
 
-    @PostMapping("/security/{id}/delete/{organizationId}")
+    @PostMapping("/security/{id}/delete")
     public String deleteAccount(@PathVariable(name = "id") long id, Principal principal, RedirectAttributes redirectAttributes,
-                                @RequestParam(value = "password", required = false) String password,
-                                @PathVariable("organizationId") long organizationId) {
+                                @RequestParam(value = "password", required = false) String password) {
         User currentUser = userRepository.findByEmail(principal.getName());
-        Organization currentOrganization = organizationRepository.findOrganizationById(organizationId);
+        Organization currentOrganization = currentUser.getOrganization();
 
         if(currentOrganization == null)
             return "organization/select-organization";
 
         if(currentUser.getId() != id)
-            return "error/404";
+            throw OrganizationScope.notFound();
 
         User userToBeDeleted = userRepository.findUserById(id);
         BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
@@ -201,7 +200,7 @@ public class AccountController {
             return "organization/select-organization";
 
         if(currentUser.getId() != id)
-            return "error/404";
+            throw OrganizationScope.notFound();
 
         model.addAttribute("newProject", new Project());
         model.addAttribute("user", userRepository.getReferenceById(id));
@@ -220,7 +219,7 @@ public class AccountController {
             return "organization/select-organization";
 
         if(currentUser.getId() != id)
-            return "error/404";
+            throw OrganizationScope.notFound();
 
         try {
             // if checkbox is checked, enable notifications for the checked box,

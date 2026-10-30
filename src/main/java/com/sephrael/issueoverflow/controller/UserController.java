@@ -1,5 +1,6 @@
 package com.sephrael.issueoverflow.controller;
 
+import com.sephrael.issueoverflow.controller.form.RegistrationForm;
 import com.sephrael.issueoverflow.entity.Organization;
 import com.sephrael.issueoverflow.entity.Project;
 import com.sephrael.issueoverflow.entity.User;
@@ -50,9 +51,15 @@ public class UserController {
     }
 
     @PostMapping("/process_register")
-    public String processRegister(User user) {
+    public String processRegister(RegistrationForm form) {
+        // only the form's fields reach the new account; registerDefaultUser sets the role and enables it
+        User user = new User();
+        user.setFirstName(form.firstName());
+        user.setLastName(form.lastName());
+        user.setEmail(form.email());
+
         BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-        String encodedPassword = passwordEncoder.encode(user.getPassword());
+        String encodedPassword = passwordEncoder.encode(form.password());
         user.setPassword(encodedPassword);
 
         userService.registerDefaultUser(user);
@@ -158,10 +165,9 @@ public class UserController {
 
         User user = userRepository.getReferenceById(id);
 
-        // if the Current User is NOT in the same Organization as the Requested User, redirect to 404 page
-        if(!currentUser.getOrganization().getUsers().contains(user)) {
-            return "error/404";
-        }
+        // if the Current User is NOT in the same Organization as the Requested User, show the 404 page
+        if(!currentUser.getOrganization().getUsers().contains(user))
+            throw OrganizationScope.notFound();
 
         model.addAttribute("user", user);
         model.addAttribute("listRoles", userService.listRoles());
@@ -177,7 +183,7 @@ public class UserController {
     @PostMapping(value = "/users/update/{id}")
     public String saveUserChanges(@PathVariable("id") Long id, @RequestParam("role") long roleId, Principal principal,
                                   @RequestParam(value = "projects", required = false) List<Project> projects,
-                                  User userBeforeUpdate, RedirectAttributes redirectAttributes) {
+                                  RedirectAttributes redirectAttributes) {
         User currentUser = userRepository.findByEmail(principal.getName());
 
         if(currentUser.getOrganization() == null)
@@ -185,18 +191,21 @@ public class UserController {
 
         User userToBeUpdated = userRepository.findUserById(id);
 
-        // if the Current User is NOT in the same Organization as the Requested User, redirect to 404 page
-        if(!currentUser.getOrganization().getUsers().contains(userToBeUpdated)) {
-            return "error/404";
-        }
+        // if the Current User is NOT in the same Organization as the Requested User, show the 404 page
+        if(!currentUser.getOrganization().getUsers().contains(userToBeUpdated))
+            throw OrganizationScope.notFound();
+
+        // the project checkboxes send IDs; every project must belong to the caller's organization
+        if(projects != null && projects.stream().anyMatch(project ->
+                project == null || !OrganizationScope.belongsTo(project.getOrganization(), currentUser.getOrganization())))
+            throw OrganizationScope.notFound();
 
         // changes a User's Role
         roleRepository.findRoleById(roleId).addToUser(userToBeUpdated);
 
         if(projects != null) {
             // decides whether or not to add or remove a User from a Project
-            userBeforeUpdate.setOrganization(userToBeUpdated.getOrganization());
-            userService.manageUserProjects(userToBeUpdated, userBeforeUpdate, projects);
+            userService.manageUserProjects(userToBeUpdated, projects);
         } else {
             // if all checkboxes for Projects are unchecked
             userService.removeUserFromAllProjects(userToBeUpdated);
@@ -208,22 +217,21 @@ public class UserController {
         return "redirect:/users";
     }
 
-    @RequestMapping("/users/remove/{id}/{organizationId}")
+    // POST only, so the CSRF token protects it. The organization is the caller's own.
+    @PostMapping("/users/remove/{id}")
     public String removeUserFromOrganization(@PathVariable("id") long id, Principal principal,
-                                             @PathVariable("organizationId") long organizationId,
                                              HttpServletRequest request, HttpServletResponse response) {
         User currentUser = userRepository.findByEmail(principal.getName());
-        Organization currentOrganization = organizationRepository.findOrganizationById(organizationId);
+        Organization currentOrganization = currentUser.getOrganization();
 
         if(currentUser.getOrganization() == null)
             return "organization/select-organization";
 
         User userBeforeRemoval = userRepository.findUserById(id);
 
-        // if the Current User is NOT in the same Organization as the Requested User, redirect to 404 page
-        if(!currentUser.getOrganization().getUsers().contains(userBeforeRemoval)) {
-            return "error/404";
-        }
+        // if the Current User is NOT in the same Organization as the Requested User, show the 404 page
+        if(!currentUser.getOrganization().getUsers().contains(userBeforeRemoval))
+            throw OrganizationScope.notFound();
 
         // deletes all the files associated with this user from AWS S3 bucket
         awsFileService.deleteAllFilesByUser(userBeforeRemoval);

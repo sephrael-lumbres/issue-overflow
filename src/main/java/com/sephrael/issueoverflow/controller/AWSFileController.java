@@ -36,9 +36,9 @@ public class AWSFileController {
                              @PathVariable("isProfilePicture") boolean isProfilePicture, RedirectAttributes redirectAttributes) {
         User user = userRepository.findUserById(userId);
 
-        // if Current User does NOT match the requested User, redirect to 404 page
+        // if Current User does NOT match the requested User, show the 404 page
         if(userRepository.findByEmail(principal.getName()).getId() != userId)
-            return "error/404";
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
 
         // if 'File' input is NOT empty and the 'User' already has a 'Profile Picture', DELETE the User's current
         // 'Profile Picture', then upload the new 'Profile Picture'
@@ -88,7 +88,7 @@ public class AWSFileController {
                 .build();
     }
 
-    @RequestMapping("/{identifier}/{issueKey}/delete/{fileKey}")
+    @PostMapping("/{identifier}/{issueKey}/delete/{fileKey}")
     public String deleteAttachment(@PathVariable("identifier") String identifier, @PathVariable("issueKey") String issueKey,
                                    @PathVariable String fileKey, Principal principal) {
         User currentUser = userRepository.findByEmail(principal.getName());
@@ -97,8 +97,12 @@ public class AWSFileController {
         if(currentUser.getOrganization() == null)
             return "organization/select-organization";
 
-        if(!Objects.equals(awsFile.getUser().getId(), currentUser.getId()))
-            return "error/404";
+        // Only the uploader can delete an attachment, and only while it belongs to an issue in their organization.
+        // Unknown keys, profile pictures and other organizations' files all show the 404 page.
+        if(awsFile == null || awsFile.isProfilePicture() || awsFile.getUser() == null
+                || !Objects.equals(awsFile.getUser().getId(), currentUser.getId())
+                || !awsFileService.canView(currentUser, awsFile))
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
 
         awsFileService.deleteFile(fileKey);
 

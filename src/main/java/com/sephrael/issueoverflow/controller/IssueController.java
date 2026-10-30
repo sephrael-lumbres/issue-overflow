@@ -1,5 +1,6 @@
 package com.sephrael.issueoverflow.controller;
 
+import com.sephrael.issueoverflow.controller.form.IssueForm;
 import com.sephrael.issueoverflow.entity.*;
 import com.sephrael.issueoverflow.repository.*;
 import com.sephrael.issueoverflow.service.AWSFileService;
@@ -9,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -84,7 +86,7 @@ public class IssueController {
         if(currentOrganization == null)
             return "organization/select-organization";
 
-        Project currentProject = projectRepository.findByIdentifierAndOrganization(identifier, currentOrganization);
+        Project currentProject = findProjectOrNotFound(identifier, currentOrganization);
 
         model.addAttribute("issues", currentProject.getIssues());
         model.addAttribute("currentUser", currentUser);
@@ -110,6 +112,9 @@ public class IssueController {
         // if Current User does not belong to any Organization, redirect them to the 'Select Organization' page
         if(URL != null) return URL;
 
+        if(currentProject == null)
+            throw OrganizationScope.notFound();
+
         model.addAttribute("currentProject", currentProject);
 
         return "issues/issues-by-project";
@@ -126,7 +131,7 @@ public class IssueController {
         Issue issue = new Issue();
         model.addAttribute("issue", issue);
         model.addAttribute("currentUser", currentUser);
-        model.addAttribute("currentProject", projectRepository.findByIdentifierAndOrganization(identifier, currentOrganization));
+        model.addAttribute("currentProject", findProjectOrNotFound(identifier, currentOrganization));
         model.addAttribute("currentUserProjects", currentUser.getProjects());
 
         // OLD CODE: this was previously used to CONNECT an 'Issue' to the 'User' that created the 'Issue'
@@ -136,12 +141,18 @@ public class IssueController {
     }
 
     @PostMapping(value = "/new")
-    public String saveNewIssue(@ModelAttribute("issue") Issue issue, Principal principal, HttpServletRequest request,
-                               @RequestParam(value = "files", required = false)MultipartFile[] files) throws MessagingException, UnsupportedEncodingException {
+    public String saveNewIssue(IssueForm form, Principal principal, HttpServletRequest request,
+                               @RequestParam(value = "files", required = false) MultipartFile[] files) throws MessagingException, UnsupportedEncodingException {
         User currentUser = userRepository.findByEmail(principal.getName());
+        Organization currentOrganization = currentUser.getOrganization();
 
-        if(currentUser.getOrganization() == null)
+        if(currentOrganization == null)
             return "organization/select-organization";
+
+        Issue issue = new Issue();
+        copyFormFields(form, issue);
+        issue.setProject(projectInOrganization(form.project(), currentOrganization));
+        issue.setAssignedTo(assigneeInOrganization(form.assignedTo(), currentOrganization));
 
         // sets the Issue Key
         issueService.setIssueKey(issue, issue.getProject());
@@ -167,28 +178,30 @@ public class IssueController {
     }
 
     @PostMapping(value = "/update")
-    public String updateIssue(@ModelAttribute("issue") Issue nextIssue, Principal principal, HttpServletRequest request,
-                              @RequestParam(value = "files", required = false)MultipartFile[] files,
+    public String updateIssue(@RequestParam("id") Long id, IssueForm form, Principal principal, HttpServletRequest request,
+                              @RequestParam(value = "files", required = false) MultipartFile[] files,
                               @RequestParam(value = "isAttachFileForm", required = false) boolean isAttachFileForm) throws MessagingException, UnsupportedEncodingException {
         User currentUser = userRepository.findByEmail(principal.getName());
+        Organization currentOrganization = currentUser.getOrganization();
 
-        if(currentUser.getOrganization() == null)
+        if(currentOrganization == null)
             return "organization/select-organization";
 
-        Issue previousIssue = issueRepository.findIssueById(nextIssue.getId());
+        // another organization's issue looks the same as one that doesn't exist
+        Issue previousIssue = issueRepository.findByIdAndOrganization(id, currentOrganization);
+
+        if(previousIssue == null)
+            throw OrganizationScope.notFound();
 
         if(!isAttachFileForm) {
+            Project nextProject = projectInOrganization(form.project(), currentOrganization);
+            User nextAssignee = assigneeInOrganization(form.assignedTo(), currentOrganization);
+
             previousIssue.setUpdatedBy(currentUser);
-            previousIssue.setTitle(nextIssue.getTitle());
-            previousIssue.setDescription(nextIssue.getDescription());
-            previousIssue.setType(nextIssue.getType());
-            previousIssue.setPriority(nextIssue.getPriority());
-            previousIssue.setStatus(nextIssue.getStatus());
-            previousIssue.setEstimatedHours(nextIssue.getEstimatedHours());
-            previousIssue.setDueDate(nextIssue.getDueDate());
-            issueService.setIssueKey(previousIssue, nextIssue.getProject());
-            previousIssue.setAssignedTo(nextIssue.getAssignedTo());
-            previousIssue.setProject(nextIssue.getProject());
+            copyFormFields(form, previousIssue);
+            issueService.setIssueKey(previousIssue, nextProject);
+            previousIssue.setAssignedTo(nextAssignee);
+            previousIssue.setProject(nextProject);
 
             issueService.save(previousIssue);
         }
@@ -214,7 +227,8 @@ public class IssueController {
         if(currentOrganization == null)
             return "organization/select-organization";
 
-        Issue issue = issueRepository.findByIssueKeyAndOrganization(issueKey, currentOrganization);
+        Project currentProject = findProjectOrNotFound(identifier, currentOrganization);
+        Issue issue = findIssueOrNotFound(issueKey, currentProject, currentOrganization);
         model.addAttribute("newComment", new Comment());
         model.addAttribute("comments", issue.getComments());
         model.addAttribute("issue", issue);
@@ -222,7 +236,7 @@ public class IssueController {
         model.addAttribute("issueChangeHistoryList", issueService.getIssueChangeHistoryList(issue.getId()));
         model.addAttribute("findRevisions", issueRepository.findRevisions(issue.getId()));
         model.addAttribute("currentUser", currentUser);
-        model.addAttribute("currentProject", projectRepository.findByIdentifierAndOrganization(identifier, currentOrganization));
+        model.addAttribute("currentProject", currentProject);
         model.addAttribute("currentUserProjects", currentUser.getProjects());
 
         return "issues/issue-details";
@@ -237,7 +251,8 @@ public class IssueController {
         if(currentOrganization == null)
             return "organization/select-organization";
 
-        Issue currentIssue = issueRepository.findByIssueKeyAndOrganization(issueKey, currentOrganization);
+        Project currentProject = findProjectOrNotFound(identifier, currentOrganization);
+        Issue currentIssue = findIssueOrNotFound(issueKey, currentProject, currentOrganization);
 
         // if Current User did NOT Open the requested Issue AND is NOT a Project Manager AND is NOT an Admin, display 403 error
         if(!Objects.equals(currentIssue.getUser().getId(), currentUser.getId()) &&
@@ -247,13 +262,13 @@ public class IssueController {
 
         model.addAttribute("issue", currentIssue);
         model.addAttribute("currentUser", currentUser);
-        model.addAttribute("currentProject", projectRepository.findByIdentifierAndOrganization(identifier, currentOrganization));
+        model.addAttribute("currentProject", currentProject);
         model.addAttribute("currentUserProjects", currentUser.getProjects());
 
         return "issues/edit-issue";
     }
 
-    @RequestMapping("/{identifier}/delete/{issueKey}/{isOrganizationList}")
+    @PostMapping("/{identifier}/delete/{issueKey}/{isOrganizationList}")
     public String deleteIssue(@PathVariable(name = "issueKey") String issueKey,
                               @PathVariable(name = "identifier") String identifier, Principal principal,
                               @PathVariable("isOrganizationList") boolean isOrganizationList, Authentication authentication) {
@@ -263,15 +278,14 @@ public class IssueController {
         if(currentUser.getOrganization() == null)
             return "organization/select-organization";
 
-        Issue currentIssue = issueRepository.findByIssueKeyAndOrganization(issueKey, currentOrganization);
+        Project currentProject = findProjectOrNotFound(identifier, currentOrganization);
+        Issue currentIssue = findIssueOrNotFound(issueKey, currentProject, currentOrganization);
 
         // if Current User did NOT Open the requested Issue AND is NOT a Project Manager AND is NOT an Admin, display 403 error
         if(!Objects.equals(currentIssue.getUser().getId(), currentUser.getId()) &&
                 authentication.getAuthorities().stream().noneMatch(a -> a.getAuthority().equals("Project Manager")) &&
                 authentication.getAuthorities().stream().noneMatch(a -> a.getAuthority().equals("Admin")))
             return "error/403";
-
-        Project currentProject = projectRepository.findByIdentifierAndOrganization(identifier, currentOrganization);
 
         // deletes all the files associated with this issue, from the AWS S3 bucket
         awsFileService.deleteAllFilesByIssue(currentIssue);
@@ -286,6 +300,61 @@ public class IssueController {
             return "redirect:/issues/all";
         else
             return "redirect:/issues/" + identifier;
+    }
+
+    // The project named in the URL, within the caller's organization.
+    private Project findProjectOrNotFound(String identifier, Organization organization) {
+        Project project = projectRepository.findByIdentifierAndOrganization(identifier, organization);
+        if(project == null)
+            throw OrganizationScope.notFound();
+
+        return project;
+    }
+
+    // The issue named in the URL, which must also belong to the URL's project.
+    private Issue findIssueOrNotFound(String issueKey, Project project, Organization organization) {
+        Issue issue = issueRepository.findByIssueKeyAndOrganization(issueKey, organization);
+        if(issue == null || !Objects.equals(issue.getProject().getId(), project.getId()))
+            throw OrganizationScope.notFound();
+
+        return issue;
+    }
+
+    private static void copyFormFields(IssueForm form, Issue issue) {
+        issue.setTitle(form.title());
+        issue.setDescription(form.description());
+        issue.setType(form.type());
+        issue.setPriority(form.priority());
+        issue.setStatus(form.status());
+        issue.setEstimatedHours(form.estimatedHours());
+        issue.setDueDate(form.dueDate());
+    }
+
+    // The project chosen in a form, which must belong to the caller's organization.
+    private Project projectInOrganization(Long projectId, Organization organization) {
+        Project project = projectId == null ? null : projectRepository.findByIdAndOrganization(projectId, organization);
+        if(project == null)
+            throw OrganizationScope.notFound();
+
+        return project;
+    }
+
+    // The assignee chosen in a form: none (the list sends " "), or a user in the caller's organization.
+    private User assigneeInOrganization(String assignedTo, Organization organization) {
+        if(!StringUtils.hasText(assignedTo))
+            return null;
+
+        User assignee;
+        try {
+            assignee = userRepository.findByIdAndOrganization(Long.valueOf(assignedTo.trim()), organization);
+        } catch(NumberFormatException exception) {
+            throw OrganizationScope.notFound();
+        }
+
+        if(assignee == null)
+            throw OrganizationScope.notFound();
+
+        return assignee;
     }
 
 //    @GetMapping(path = "/json")

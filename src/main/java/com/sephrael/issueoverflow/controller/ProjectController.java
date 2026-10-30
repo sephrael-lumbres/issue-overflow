@@ -1,5 +1,6 @@
 package com.sephrael.issueoverflow.controller;
 
+import com.sephrael.issueoverflow.controller.form.ProjectForm;
 import com.sephrael.issueoverflow.entity.*;
 import com.sephrael.issueoverflow.repository.IssueKeySequenceRepository;
 import com.sephrael.issueoverflow.repository.IssueRepository;
@@ -62,6 +63,9 @@ public class ProjectController {
 
         Project currentProject = projectRepository.findByIdentifierAndOrganization(identifier, currentOrganization);
 
+        if(currentProject == null)
+            throw OrganizationScope.notFound();
+
         List<Issue> sortedIssues = issueService.getIssuesSortedByRecentActivity(
                 issueRepository.findByProject(currentProject),
                 issueRepository.findByProjectOrderByDateCreatedDesc(currentProject),
@@ -86,7 +90,7 @@ public class ProjectController {
     }
 
     @PostMapping("/new")
-    public String createProject(Project newProject, Principal principal, Model model, RedirectAttributes redirectAttributes) {
+    public String createProject(ProjectForm form, Principal principal, Model model, RedirectAttributes redirectAttributes) {
         User currentUser = userRepository.findByEmail(principal.getName());
         Organization currentUserOrganization = currentUser.getOrganization();
 
@@ -95,6 +99,11 @@ public class ProjectController {
 
         model.addAttribute("project", new Project());
 
+        Project newProject = new Project();
+        newProject.setName(form.name());
+        newProject.setIdentifier(form.identifier());
+        newProject.setColor(form.color());
+
         // verifies that the Project requested for Creation has unique fields and redirects to '/projects/all' with an
         // alert message based on the result
         return projectService.isProjectIdentifierUniqueWithinOrganization(newProject, currentUser,
@@ -102,14 +111,27 @@ public class ProjectController {
     }
 
     @PostMapping("/save")
-    public String editProject(@RequestParam(value = "id") Long id, Project requestedProjectUpdate, Principal principal,
+    public String editProject(@RequestParam(value = "id") Long id, ProjectForm form, Principal principal,
                               RedirectAttributes redirectAttributes) {
         User currentUser = userRepository.findByEmail(principal.getName());
+        Organization currentOrganization = currentUser.getOrganization();
 
-        if(currentUser.getOrganization() == null)
+        if(currentOrganization == null)
             return "organization/select-organization";
 
-        Project projectBeforeUpdate = projectRepository.findProjectById(id);
+        // another organization's project looks the same as one that doesn't exist
+        Project projectBeforeUpdate = projectRepository.findByIdAndOrganization(id, currentOrganization);
+
+        if(projectBeforeUpdate == null)
+            throw OrganizationScope.notFound();
+
+        // the form sets only the name, identifier and color; the project stays in the caller's organization
+        Project requestedProjectUpdate = new Project();
+        requestedProjectUpdate.setId(projectBeforeUpdate.getId());
+        requestedProjectUpdate.setOrganization(currentOrganization);
+        requestedProjectUpdate.setName(form.name());
+        requestedProjectUpdate.setIdentifier(form.identifier());
+        requestedProjectUpdate.setColor(form.color());
 
         // if a Project's Identifier is requested to be changed, create a new Issue Key Sequence and delete the previous one
         if(!Objects.equals(projectBeforeUpdate.getIdentifier(), requestedProjectUpdate.getIdentifier())) {
@@ -138,20 +160,21 @@ public class ProjectController {
                 false, redirectAttributes);
     }
 
-    @RequestMapping("/delete/{id}")
+    @PostMapping("/delete/{id}")
     public String deleteProject(@PathVariable(name = "id") Long id, Principal principal) {
         User currentUser = userRepository.findByEmail(principal.getName());
 
         if(currentUser.getOrganization() == null)
             return "organization/select-organization";
 
+        Project project = projectRepository.findByIdAndOrganization(id, currentUser.getOrganization());
+
         // checks if the Current User is involved with the Requested Project
-        if(!currentUser.getProjects().contains(projectRepository.findProjectById(id))) {
-            return "error/404";
-        }
+        if(project == null || !currentUser.getProjects().contains(project))
+            throw OrganizationScope.notFound();
 
         // deletes all the files associated with this project, from AWS S3 bucket
-        awsFileService.deleteAllFilesByProject(projectRepository.findProjectById(id));
+        awsFileService.deleteAllFilesByProject(project);
 
         projectRepository.deleteById(id);
 

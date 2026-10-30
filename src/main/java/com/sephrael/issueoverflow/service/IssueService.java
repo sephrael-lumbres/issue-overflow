@@ -326,11 +326,11 @@ public class IssueService {
         // this allows a User to view Issues that are unassigned or assigned to a specific User or all issues that are
         // neither assigned nor unassigned
         if(Objects.equals(assignedTo, "Unassigned")) {
-            filteredIssues = issueRepository.findByProjectAndStatusAndPriorityAndTypeAndUserAndAssignedTo(currentProject,
-                    status, priority, type, userRepository.findByEmail(createdBy), null);
+            filteredIssues = issueRepository.findByProjectAndStatusAndPriorityAndTypeAndUserAndAssignedTo(currentOrganization,
+                    currentProject, status, priority, type, userRepository.findByEmail(createdBy), null);
         } else {
-            filteredIssues = issueRepository.findByProjectAndStatusAndPriorityAndTypeAndAssignedToAndUser(currentProject,
-                    status, priority, type, userRepository.findByEmail(assignedTo), userRepository.findByEmail(createdBy));
+            filteredIssues = issueRepository.findByProjectAndStatusAndPriorityAndTypeAndAssignedToAndUser(currentOrganization,
+                    currentProject, status, priority, type, userRepository.findByEmail(assignedTo), userRepository.findByEmail(createdBy));
         }
 
         model.addAttribute("issues", filteredIssues);
