@@ -1,5 +1,6 @@
 package com.sephrael.issueoverflow.controller;
 
+import com.sephrael.issueoverflow.controller.form.IssueForm;
 import com.sephrael.issueoverflow.entity.*;
 import com.sephrael.issueoverflow.repository.*;
 import com.sephrael.issueoverflow.service.AWSFileService;
@@ -9,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -136,12 +138,18 @@ public class IssueController {
     }
 
     @PostMapping(value = "/new")
-    public String saveNewIssue(@ModelAttribute("issue") Issue issue, Principal principal, HttpServletRequest request,
-                               @RequestParam(value = "files", required = false)MultipartFile[] files) throws MessagingException, UnsupportedEncodingException {
+    public String saveNewIssue(IssueForm form, Principal principal, HttpServletRequest request,
+                               @RequestParam(value = "files", required = false) MultipartFile[] files) throws MessagingException, UnsupportedEncodingException {
         User currentUser = userRepository.findByEmail(principal.getName());
+        Organization currentOrganization = currentUser.getOrganization();
 
-        if(currentUser.getOrganization() == null)
+        if(currentOrganization == null)
             return "organization/select-organization";
+
+        Issue issue = new Issue();
+        copyFormFields(form, issue);
+        issue.setProject(projectInOrganization(form.project(), currentOrganization));
+        issue.setAssignedTo(assigneeInOrganization(form.assignedTo(), currentOrganization));
 
         // sets the Issue Key
         issueService.setIssueKey(issue, issue.getProject());
@@ -167,28 +175,30 @@ public class IssueController {
     }
 
     @PostMapping(value = "/update")
-    public String updateIssue(@ModelAttribute("issue") Issue nextIssue, Principal principal, HttpServletRequest request,
-                              @RequestParam(value = "files", required = false)MultipartFile[] files,
+    public String updateIssue(@RequestParam("id") Long id, IssueForm form, Principal principal, HttpServletRequest request,
+                              @RequestParam(value = "files", required = false) MultipartFile[] files,
                               @RequestParam(value = "isAttachFileForm", required = false) boolean isAttachFileForm) throws MessagingException, UnsupportedEncodingException {
         User currentUser = userRepository.findByEmail(principal.getName());
+        Organization currentOrganization = currentUser.getOrganization();
 
-        if(currentUser.getOrganization() == null)
+        if(currentOrganization == null)
             return "organization/select-organization";
 
-        Issue previousIssue = issueRepository.findIssueById(nextIssue.getId());
+        // another organization's issue looks the same as one that doesn't exist
+        Issue previousIssue = issueRepository.findByIdAndOrganization(id, currentOrganization);
+
+        if(previousIssue == null)
+            throw OrganizationScope.notFound();
 
         if(!isAttachFileForm) {
+            Project nextProject = projectInOrganization(form.project(), currentOrganization);
+            User nextAssignee = assigneeInOrganization(form.assignedTo(), currentOrganization);
+
             previousIssue.setUpdatedBy(currentUser);
-            previousIssue.setTitle(nextIssue.getTitle());
-            previousIssue.setDescription(nextIssue.getDescription());
-            previousIssue.setType(nextIssue.getType());
-            previousIssue.setPriority(nextIssue.getPriority());
-            previousIssue.setStatus(nextIssue.getStatus());
-            previousIssue.setEstimatedHours(nextIssue.getEstimatedHours());
-            previousIssue.setDueDate(nextIssue.getDueDate());
-            issueService.setIssueKey(previousIssue, nextIssue.getProject());
-            previousIssue.setAssignedTo(nextIssue.getAssignedTo());
-            previousIssue.setProject(nextIssue.getProject());
+            copyFormFields(form, previousIssue);
+            issueService.setIssueKey(previousIssue, nextProject);
+            previousIssue.setAssignedTo(nextAssignee);
+            previousIssue.setProject(nextProject);
 
             issueService.save(previousIssue);
         }
@@ -286,6 +296,43 @@ public class IssueController {
             return "redirect:/issues/all";
         else
             return "redirect:/issues/" + identifier;
+    }
+
+    private static void copyFormFields(IssueForm form, Issue issue) {
+        issue.setTitle(form.title());
+        issue.setDescription(form.description());
+        issue.setType(form.type());
+        issue.setPriority(form.priority());
+        issue.setStatus(form.status());
+        issue.setEstimatedHours(form.estimatedHours());
+        issue.setDueDate(form.dueDate());
+    }
+
+    // The project chosen in a form, which must belong to the caller's organization.
+    private Project projectInOrganization(Long projectId, Organization organization) {
+        Project project = projectId == null ? null : projectRepository.findByIdAndOrganization(projectId, organization);
+        if(project == null)
+            throw OrganizationScope.notFound();
+
+        return project;
+    }
+
+    // The assignee chosen in a form: none (the list sends " "), or a user in the caller's organization.
+    private User assigneeInOrganization(String assignedTo, Organization organization) {
+        if(!StringUtils.hasText(assignedTo))
+            return null;
+
+        User assignee;
+        try {
+            assignee = userRepository.findByIdAndOrganization(Long.valueOf(assignedTo.trim()), organization);
+        } catch(NumberFormatException exception) {
+            throw OrganizationScope.notFound();
+        }
+
+        if(assignee == null)
+            throw OrganizationScope.notFound();
+
+        return assignee;
     }
 
 //    @GetMapping(path = "/json")

@@ -1,5 +1,6 @@
 package com.sephrael.issueoverflow.controller;
 
+import com.sephrael.issueoverflow.controller.form.OrganizationForm;
 import com.sephrael.issueoverflow.entity.Organization;
 import com.sephrael.issueoverflow.entity.Project;
 import com.sephrael.issueoverflow.entity.User;
@@ -81,9 +82,11 @@ public class OrganizationController {
     }
 
     @PostMapping("/save")
-    public String createOrganization(Organization organization, Principal principal,
-                                     HttpServletRequest request,HttpServletResponse response) {
+    public String createOrganization(OrganizationForm form, Principal principal,
+                                     HttpServletRequest request, HttpServletResponse response) {
         User currentUser = userRepository.findByEmail(principal.getName());
+        Organization organization = new Organization();
+        organization.setName(form.name());
         String accessKey = generateRandomAccessKey(10);
         organization.setAccessKey(accessKey);
 

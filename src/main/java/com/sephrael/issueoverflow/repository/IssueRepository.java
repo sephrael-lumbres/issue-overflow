@@ -15,6 +15,7 @@ import java.util.List;
 public interface IssueRepository extends RevisionRepository<Issue, Long, Integer>, CrudRepository<Issue, Long> {
 
     Issue findIssueById(Long id);
+    Issue findByIdAndOrganization(Long id, Organization organization);
     List<Issue> findByUser(User user);
     List<Issue> findByAssignedTo(User assignedTo);
     Issue findByIssueKeyAndOrganization(String issueKey, Organization organization);

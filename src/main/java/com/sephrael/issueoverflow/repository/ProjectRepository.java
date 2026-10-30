@@ -11,6 +11,7 @@ import java.util.List;
 public interface ProjectRepository extends JpaRepository<Project, Long> {
     Project findByIdentifierAndOrganization(String identifier, Organization organization);
     Project findProjectById(Long id);
+    Project findByIdAndOrganization(Long id, Organization organization);
     List<Project> findAllProjectsByOrganizationId(Long id);
 
     // was previously used to access Project information but this method caused issues

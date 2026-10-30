@@ -1,5 +1,6 @@
 package com.sephrael.issueoverflow.controller;
 
+import com.sephrael.issueoverflow.controller.form.ProfileForm;
 import com.sephrael.issueoverflow.entity.Organization;
 import com.sephrael.issueoverflow.entity.Project;
 import com.sephrael.issueoverflow.entity.User;
@@ -57,7 +58,7 @@ public class AccountController {
     }
 
     @PostMapping("/profile/{id}/save")
-    public String saveAccountProfileChanges(@PathVariable("id") long id, User user, Principal principal,
+    public String saveAccountProfileChanges(@PathVariable("id") long id, ProfileForm form, Principal principal,
                                             RedirectAttributes redirectAttributes,
                                             HttpServletRequest request, HttpServletResponse response) {
         User currentUser = userRepository.findByEmail(principal.getName());
@@ -72,13 +73,12 @@ public class AccountController {
             User userToBeUpdated = userRepository.findUserById(id);
             String previousEmail = userToBeUpdated.getEmail();
 
-            userToBeUpdated.setFirstName(user.getFirstName());
-            userToBeUpdated.setLastName(user.getLastName());
-            userToBeUpdated.setEmail(user.getEmail());
-
+            userToBeUpdated.setFirstName(form.firstName());
+            userToBeUpdated.setLastName(form.lastName());
+            userToBeUpdated.setEmail(form.email());
             userRepository.save(userToBeUpdated);
 
-            if(!Objects.equals(previousEmail, user.getEmail())) {
+            if(!Objects.equals(previousEmail, form.email())) {
                 redirectAttributes.addFlashAttribute("emailChangeSuccess", "Email address has been successfully updated. Please log in with your new email address.");
                 new SecurityContextLogoutHandler().logout(request, response, SecurityContextHolder.getContext().getAuthentication());
                 return "redirect:/login";

@@ -233,7 +233,7 @@ public class UserService {
         }
     }
 
-    public void manageUserProjects(User userToBeUpdated, User userBeforeUpdate, List<Project> projects) {
+    public void manageUserProjects(User userToBeUpdated, List<Project> projects) {
         // adds User to selected Projects if the User was not already involved
         for(Project project : projects) {
 
@@ -243,7 +243,7 @@ public class UserService {
         }
 
         // removes User from unselected Projects if the User was previously involved
-        for(Project project : userBeforeUpdate.getOrganization().getProjects()) {
+        for(Project project : userToBeUpdated.getOrganization().getProjects()) {
             if(!projects.contains(project) && project.getUsers().contains(userToBeUpdated)) {
                 project.removeUserFromProject(userToBeUpdated);
             }

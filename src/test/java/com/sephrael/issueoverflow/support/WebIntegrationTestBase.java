@@ -75,6 +75,8 @@ public abstract class WebIntegrationTestBase {
     @Autowired
     protected AWSFileRepository awsFileRepository;
     @Autowired
+    protected CommentRepository commentRepository;
+    @Autowired
     protected AWSFileService awsFileService;
     @Autowired
     private PlatformTransactionManager transactionManager;
@@ -148,6 +150,15 @@ public abstract class WebIntegrationTestBase {
         issue.setOrganization(project.getOrganization());
         issue.setAssignedTo(assignee);
         return issueRepository.save(issue);
+    }
+
+    protected Comment createComment(Issue issue, User author, String message) {
+        Comment comment = new Comment();
+        comment.setMessage(message);
+        comment.setUser(author);
+        comment.setIssue(issue);
+        comment.setIsEdited(false);
+        return commentRepository.save(comment);
     }
 
     // An organization with one Project Manager, one project, and one Open/High Bug assigned to that manager.

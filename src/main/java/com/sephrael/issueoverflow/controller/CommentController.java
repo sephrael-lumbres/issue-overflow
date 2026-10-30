@@ -1,5 +1,6 @@
 package com.sephrael.issueoverflow.controller;
 
+import com.sephrael.issueoverflow.controller.form.CommentForm;
 import com.sephrael.issueoverflow.entity.Comment;
 import com.sephrael.issueoverflow.entity.Issue;
 import com.sephrael.issueoverflow.entity.Project;
@@ -33,7 +34,7 @@ public class CommentController {
     private ProjectRepository projectRepository;
 
     @PostMapping("/new")
-    public String addComment(@PathVariable(value = "issueKey") String issueKey, Comment comment, Principal principal,
+    public String addComment(@PathVariable(value = "issueKey") String issueKey, CommentForm form, Principal principal,
                              @PathVariable String identifier, HttpServletRequest request) throws MessagingException, UnsupportedEncodingException {
         User currentUser = userRepository.findByEmail(principal.getName());
         Project currentProject = projectRepository.findByIdentifierAndOrganization(identifier, currentUser.getOrganization());
@@ -47,6 +48,8 @@ public class CommentController {
 
         Issue issue = issueRepository.findByIssueKeyAndOrganization(issueKey, currentUser.getOrganization());
 
+        Comment comment = new Comment();
+        comment.setMessage(form.message());
         currentUser.addToComment(comment);
         issue.addToComment(comment);
 
@@ -59,7 +62,7 @@ public class CommentController {
     }
 
     @PostMapping("/save")
-    public String editComment(@RequestParam("id") Long id, @RequestParam("user") User user, @RequestParam("issue") Issue issue,
+    public String editComment(@RequestParam("id") Long id,
                               @RequestParam("isEdited") boolean isEdited, @RequestParam("message") String message,
                               @PathVariable(value = "issueKey") String issueKey,
                               @PathVariable String identifier, Principal principal) {
@@ -74,9 +77,6 @@ public class CommentController {
             return "error/404";
 
         Comment updatedComment = commentRepository.findCommentById(id);
-
-        updatedComment.setUser(user);
-        updatedComment.setIssue(issue);
 
         // sets Comment isEdited to true if comment has not yet been edited
         if(!isEdited) { updatedComment.setIsEdited(true); }

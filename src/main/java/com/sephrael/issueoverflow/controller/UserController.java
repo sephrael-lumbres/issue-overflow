@@ -1,5 +1,6 @@
 package com.sephrael.issueoverflow.controller;
 
+import com.sephrael.issueoverflow.controller.form.RegistrationForm;
 import com.sephrael.issueoverflow.entity.Organization;
 import com.sephrael.issueoverflow.entity.Project;
 import com.sephrael.issueoverflow.entity.User;
@@ -50,9 +51,15 @@ public class UserController {
     }
 
     @PostMapping("/process_register")
-    public String processRegister(User user) {
+    public String processRegister(RegistrationForm form) {
+        // only the form's fields reach the new account; registerDefaultUser sets the role and enables it
+        User user = new User();
+        user.setFirstName(form.firstName());
+        user.setLastName(form.lastName());
+        user.setEmail(form.email());
+
         BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-        String encodedPassword = passwordEncoder.encode(user.getPassword());
+        String encodedPassword = passwordEncoder.encode(form.password());
         user.setPassword(encodedPassword);
 
         userService.registerDefaultUser(user);
@@ -177,7 +184,7 @@ public class UserController {
     @PostMapping(value = "/users/update/{id}")
     public String saveUserChanges(@PathVariable("id") Long id, @RequestParam("role") long roleId, Principal principal,
                                   @RequestParam(value = "projects", required = false) List<Project> projects,
-                                  User userBeforeUpdate, RedirectAttributes redirectAttributes) {
+                                  RedirectAttributes redirectAttributes) {
         User currentUser = userRepository.findByEmail(principal.getName());
 
         if(currentUser.getOrganization() == null)
@@ -195,8 +202,7 @@ public class UserController {
 
         if(projects != null) {
             // decides whether or not to add or remove a User from a Project
-            userBeforeUpdate.setOrganization(userToBeUpdated.getOrganization());
-            userService.manageUserProjects(userToBeUpdated, userBeforeUpdate, projects);
+            userService.manageUserProjects(userToBeUpdated, projects);
         } else {
             // if all checkboxes for Projects are unchecked
             userService.removeUserFromAllProjects(userToBeUpdated);
