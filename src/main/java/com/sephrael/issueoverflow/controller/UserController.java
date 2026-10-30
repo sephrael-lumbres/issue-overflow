@@ -165,10 +165,9 @@ public class UserController {
 
         User user = userRepository.getReferenceById(id);
 
-        // if the Current User is NOT in the same Organization as the Requested User, redirect to 404 page
-        if(!currentUser.getOrganization().getUsers().contains(user)) {
-            return "error/404";
-        }
+        // if the Current User is NOT in the same Organization as the Requested User, show the 404 page
+        if(!currentUser.getOrganization().getUsers().contains(user))
+            throw OrganizationScope.notFound();
 
         model.addAttribute("user", user);
         model.addAttribute("listRoles", userService.listRoles());
@@ -192,10 +191,14 @@ public class UserController {
 
         User userToBeUpdated = userRepository.findUserById(id);
 
-        // if the Current User is NOT in the same Organization as the Requested User, redirect to 404 page
-        if(!currentUser.getOrganization().getUsers().contains(userToBeUpdated)) {
-            return "error/404";
-        }
+        // if the Current User is NOT in the same Organization as the Requested User, show the 404 page
+        if(!currentUser.getOrganization().getUsers().contains(userToBeUpdated))
+            throw OrganizationScope.notFound();
+
+        // the project checkboxes send IDs; every project must belong to the caller's organization
+        if(projects != null && projects.stream().anyMatch(project ->
+                project == null || !OrganizationScope.belongsTo(project.getOrganization(), currentUser.getOrganization())))
+            throw OrganizationScope.notFound();
 
         // changes a User's Role
         roleRepository.findRoleById(roleId).addToUser(userToBeUpdated);
@@ -226,10 +229,9 @@ public class UserController {
 
         User userBeforeRemoval = userRepository.findUserById(id);
 
-        // if the Current User is NOT in the same Organization as the Requested User, redirect to 404 page
-        if(!currentUser.getOrganization().getUsers().contains(userBeforeRemoval)) {
-            return "error/404";
-        }
+        // if the Current User is NOT in the same Organization as the Requested User, show the 404 page
+        if(!currentUser.getOrganization().getUsers().contains(userBeforeRemoval))
+            throw OrganizationScope.notFound();
 
         // deletes all the files associated with this user from AWS S3 bucket
         awsFileService.deleteAllFilesByUser(userBeforeRemoval);

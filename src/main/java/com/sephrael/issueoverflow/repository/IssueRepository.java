@@ -34,15 +34,16 @@ public interface IssueRepository extends RevisionRepository<Issue, Long, Integer
     // used to calculate % progress in dashboard
     List<Issue> findByProjectAndStatus(Project project, String status);
 
-    @Query("SELECT i FROM Issue i WHERE (:project is null  or i.project = :project) and " +
+    // Both filters stay inside one organization; a null project, status, priority, type or user matches any.
+    @Query("SELECT i FROM Issue i WHERE i.organization = :organization and (:project is null  or i.project = :project) and " +
             "(:status is null or i.status = :status) and (:priority is null or i.priority = :priority) and " +
             "(:type is null or i.type = :type) and (:assignedTo is null or i.assignedTo = :assignedTo) and (:user is null or i.user = :user)")
-    List<Issue> findByProjectAndStatusAndPriorityAndTypeAndAssignedToAndUser(Project project, String status, String priority, String type, User assignedTo, User user);
+    List<Issue> findByProjectAndStatusAndPriorityAndTypeAndAssignedToAndUser(Organization organization, Project project, String status, String priority, String type, User assignedTo, User user);
 
-    @Query("SELECT i FROM Issue i WHERE (:project is null  or i.project = :project) and " +
+    @Query("SELECT i FROM Issue i WHERE i.organization = :organization and (:project is null  or i.project = :project) and " +
             "(:status is null or i.status = :status) and (:priority is null or i.priority = :priority) and " +
             "(:type is null or i.type = :type) and (:user is null or i.user = :user) and (i.assignedTo is null or i.assignedTo = :assignedTo)")
-    List<Issue> findByProjectAndStatusAndPriorityAndTypeAndUserAndAssignedTo(Project project, String status, String priority, String type, User user, User assignedTo);
+    List<Issue> findByProjectAndStatusAndPriorityAndTypeAndUserAndAssignedTo(Organization organization, Project project, String status, String priority, String type, User user, User assignedTo);
 //    @Query("select a from Issue a where a.issueId = ?1")
 //    public Issue findIssue(Long issueId);
 

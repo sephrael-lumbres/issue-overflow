@@ -155,6 +155,7 @@ class PageRenderTest extends WebIntegrationTestBase {
         MvcResult result = mockMvc.perform(get("/users/edit/" + otherOrganization.projectManager.getId()).session(session))
                 .andReturn();
 
+        assertThat(result.getResponse().getStatus()).isEqualTo(404);
         String viewName = result.getModelAndView() == null ? null : result.getModelAndView().getViewName();
         assertThat(viewName).isNotEqualTo("users/edit-user");
         assertThat(result.getResponse().getContentAsString())

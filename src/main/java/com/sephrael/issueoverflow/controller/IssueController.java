@@ -86,7 +86,7 @@ public class IssueController {
         if(currentOrganization == null)
             return "organization/select-organization";
 
-        Project currentProject = projectRepository.findByIdentifierAndOrganization(identifier, currentOrganization);
+        Project currentProject = findProjectOrNotFound(identifier, currentOrganization);
 
         model.addAttribute("issues", currentProject.getIssues());
         model.addAttribute("currentUser", currentUser);
@@ -112,6 +112,9 @@ public class IssueController {
         // if Current User does not belong to any Organization, redirect them to the 'Select Organization' page
         if(URL != null) return URL;
 
+        if(currentProject == null)
+            throw OrganizationScope.notFound();
+
         model.addAttribute("currentProject", currentProject);
 
         return "issues/issues-by-project";
@@ -128,7 +131,7 @@ public class IssueController {
         Issue issue = new Issue();
         model.addAttribute("issue", issue);
         model.addAttribute("currentUser", currentUser);
-        model.addAttribute("currentProject", projectRepository.findByIdentifierAndOrganization(identifier, currentOrganization));
+        model.addAttribute("currentProject", findProjectOrNotFound(identifier, currentOrganization));
         model.addAttribute("currentUserProjects", currentUser.getProjects());
 
         // OLD CODE: this was previously used to CONNECT an 'Issue' to the 'User' that created the 'Issue'
@@ -224,7 +227,8 @@ public class IssueController {
         if(currentOrganization == null)
             return "organization/select-organization";
 
-        Issue issue = issueRepository.findByIssueKeyAndOrganization(issueKey, currentOrganization);
+        Project currentProject = findProjectOrNotFound(identifier, currentOrganization);
+        Issue issue = findIssueOrNotFound(issueKey, currentProject, currentOrganization);
         model.addAttribute("newComment", new Comment());
         model.addAttribute("comments", issue.getComments());
         model.addAttribute("issue", issue);
@@ -232,7 +236,7 @@ public class IssueController {
         model.addAttribute("issueChangeHistoryList", issueService.getIssueChangeHistoryList(issue.getId()));
         model.addAttribute("findRevisions", issueRepository.findRevisions(issue.getId()));
         model.addAttribute("currentUser", currentUser);
-        model.addAttribute("currentProject", projectRepository.findByIdentifierAndOrganization(identifier, currentOrganization));
+        model.addAttribute("currentProject", currentProject);
         model.addAttribute("currentUserProjects", currentUser.getProjects());
 
         return "issues/issue-details";
@@ -247,7 +251,8 @@ public class IssueController {
         if(currentOrganization == null)
             return "organization/select-organization";
 
-        Issue currentIssue = issueRepository.findByIssueKeyAndOrganization(issueKey, currentOrganization);
+        Project currentProject = findProjectOrNotFound(identifier, currentOrganization);
+        Issue currentIssue = findIssueOrNotFound(issueKey, currentProject, currentOrganization);
 
         // if Current User did NOT Open the requested Issue AND is NOT a Project Manager AND is NOT an Admin, display 403 error
         if(!Objects.equals(currentIssue.getUser().getId(), currentUser.getId()) &&
@@ -257,7 +262,7 @@ public class IssueController {
 
         model.addAttribute("issue", currentIssue);
         model.addAttribute("currentUser", currentUser);
-        model.addAttribute("currentProject", projectRepository.findByIdentifierAndOrganization(identifier, currentOrganization));
+        model.addAttribute("currentProject", currentProject);
         model.addAttribute("currentUserProjects", currentUser.getProjects());
 
         return "issues/edit-issue";
@@ -273,15 +278,14 @@ public class IssueController {
         if(currentUser.getOrganization() == null)
             return "organization/select-organization";
 
-        Issue currentIssue = issueRepository.findByIssueKeyAndOrganization(issueKey, currentOrganization);
+        Project currentProject = findProjectOrNotFound(identifier, currentOrganization);
+        Issue currentIssue = findIssueOrNotFound(issueKey, currentProject, currentOrganization);
 
         // if Current User did NOT Open the requested Issue AND is NOT a Project Manager AND is NOT an Admin, display 403 error
         if(!Objects.equals(currentIssue.getUser().getId(), currentUser.getId()) &&
                 authentication.getAuthorities().stream().noneMatch(a -> a.getAuthority().equals("Project Manager")) &&
                 authentication.getAuthorities().stream().noneMatch(a -> a.getAuthority().equals("Admin")))
             return "error/403";
-
-        Project currentProject = projectRepository.findByIdentifierAndOrganization(identifier, currentOrganization);
 
         // deletes all the files associated with this issue, from the AWS S3 bucket
         awsFileService.deleteAllFilesByIssue(currentIssue);
@@ -296,6 +300,24 @@ public class IssueController {
             return "redirect:/issues/all";
         else
             return "redirect:/issues/" + identifier;
+    }
+
+    // The project named in the URL, within the caller's organization.
+    private Project findProjectOrNotFound(String identifier, Organization organization) {
+        Project project = projectRepository.findByIdentifierAndOrganization(identifier, organization);
+        if(project == null)
+            throw OrganizationScope.notFound();
+
+        return project;
+    }
+
+    // The issue named in the URL, which must also belong to the URL's project.
+    private Issue findIssueOrNotFound(String issueKey, Project project, Organization organization) {
+        Issue issue = issueRepository.findByIssueKeyAndOrganization(issueKey, organization);
+        if(issue == null || !Objects.equals(issue.getProject().getId(), project.getId()))
+            throw OrganizationScope.notFound();
+
+        return issue;
     }
 
     private static void copyFormFields(IssueForm form, Issue issue) {

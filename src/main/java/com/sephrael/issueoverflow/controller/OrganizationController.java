@@ -18,6 +18,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.security.Principal;
+import java.util.Objects;
 import java.util.Random;
 
 @Controller
@@ -107,15 +108,18 @@ public class OrganizationController {
     public String updateOrganization(@RequestParam(value = "id") Long id, RedirectAttributes redirectAttributes,
                                      @RequestParam(value = "organizationName") String organizationName, Principal principal) {
         User currentUser = userRepository.findByEmail(principal.getName());
+        Organization currentOrganization = currentUser.getOrganization();
 
-        if(currentUser.getOrganization() == null)
+        if(currentOrganization == null)
             return "organization/select-organization";
 
-        try {
-            Organization previousOrganization = organizationRepository.findOrganizationById(id);
-            previousOrganization.setName(organizationName);
+        // only the caller's own organization can be renamed; any other id looks unknown
+        if(!Objects.equals(id, currentOrganization.getId()))
+            throw OrganizationScope.notFound();
 
-            organizationRepository.save(previousOrganization);
+        try {
+            currentOrganization.setName(organizationName);
+            organizationRepository.save(currentOrganization);
 
             redirectAttributes.addFlashAttribute("updateOrganizationSuccess", "Organization has been successfully updated!");
         } catch(Exception exception) {

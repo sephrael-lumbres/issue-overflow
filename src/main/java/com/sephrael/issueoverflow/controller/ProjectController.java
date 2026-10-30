@@ -63,6 +63,9 @@ public class ProjectController {
 
         Project currentProject = projectRepository.findByIdentifierAndOrganization(identifier, currentOrganization);
 
+        if(currentProject == null)
+            throw OrganizationScope.notFound();
+
         List<Issue> sortedIssues = issueService.getIssuesSortedByRecentActivity(
                 issueRepository.findByProject(currentProject),
                 issueRepository.findByProjectOrderByDateCreatedDesc(currentProject),
@@ -164,13 +167,14 @@ public class ProjectController {
         if(currentUser.getOrganization() == null)
             return "organization/select-organization";
 
+        Project project = projectRepository.findByIdAndOrganization(id, currentUser.getOrganization());
+
         // checks if the Current User is involved with the Requested Project
-        if(!currentUser.getProjects().contains(projectRepository.findProjectById(id))) {
-            return "error/404";
-        }
+        if(project == null || !currentUser.getProjects().contains(project))
+            throw OrganizationScope.notFound();
 
         // deletes all the files associated with this project, from AWS S3 bucket
-        awsFileService.deleteAllFilesByProject(projectRepository.findProjectById(id));
+        awsFileService.deleteAllFilesByProject(project);
 
         projectRepository.deleteById(id);
 
