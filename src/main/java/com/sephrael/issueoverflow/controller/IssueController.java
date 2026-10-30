@@ -268,7 +268,7 @@ public class IssueController {
         return "issues/edit-issue";
     }
 
-    @RequestMapping("/{identifier}/delete/{issueKey}/{isOrganizationList}")
+    @PostMapping("/{identifier}/delete/{issueKey}/{isOrganizationList}")
     public String deleteIssue(@PathVariable(name = "issueKey") String issueKey,
                               @PathVariable(name = "identifier") String identifier, Principal principal,
                               @PathVariable("isOrganizationList") boolean isOrganizationList, Authentication authentication) {

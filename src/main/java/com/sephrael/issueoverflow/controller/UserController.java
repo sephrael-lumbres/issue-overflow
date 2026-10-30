@@ -217,12 +217,12 @@ public class UserController {
         return "redirect:/users";
     }
 
-    @RequestMapping("/users/remove/{id}/{organizationId}")
+    // POST only, so the CSRF token protects it. The organization is the caller's own.
+    @PostMapping("/users/remove/{id}")
     public String removeUserFromOrganization(@PathVariable("id") long id, Principal principal,
-                                             @PathVariable("organizationId") long organizationId,
                                              HttpServletRequest request, HttpServletResponse response) {
         User currentUser = userRepository.findByEmail(principal.getName());
-        Organization currentOrganization = organizationRepository.findOrganizationById(organizationId);
+        Organization currentOrganization = currentUser.getOrganization();
 
         if(currentUser.getOrganization() == null)
             return "organization/select-organization";

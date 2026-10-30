@@ -160,7 +160,7 @@ public class ProjectController {
                 false, redirectAttributes);
     }
 
-    @RequestMapping("/delete/{id}")
+    @PostMapping("/delete/{id}")
     public String deleteProject(@PathVariable(name = "id") Long id, Principal principal) {
         User currentUser = userRepository.findByEmail(principal.getName());
 

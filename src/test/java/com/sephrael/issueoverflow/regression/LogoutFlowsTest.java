@@ -46,8 +46,7 @@ class LogoutFlowsTest extends WebIntegrationTestBase {
         createUser(fixture.organization, "Developer");
         MockHttpSession session = login(fixture.projectManager.getEmail());
 
-        mockMvc.perform(post("/users/remove/" + fixture.projectManager.getId() + "/" + fixture.organization.getId())
-                        .session(session).with(csrf()))
+        mockMvc.perform(post("/users/remove/" + fixture.projectManager.getId()).session(session).with(csrf()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/users"));
 

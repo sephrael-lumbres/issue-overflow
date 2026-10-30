@@ -80,7 +80,7 @@ public class CommentController {
         return "redirect:/issues/{identifier}/view/" + issueKey;
     }
 
-    @RequestMapping("/{commentId}/delete")
+    @PostMapping("/{commentId}/delete")
     public String deleteComment(@PathVariable(value = "issueKey") String issueKey,
                                 @PathVariable(value = "commentId") Long commentId,
                                 @PathVariable String identifier, Principal principal) {

@@ -88,7 +88,7 @@ public class AWSFileController {
                 .build();
     }
 
-    @RequestMapping("/{identifier}/{issueKey}/delete/{fileKey}")
+    @PostMapping("/{identifier}/{issueKey}/delete/{fileKey}")
     public String deleteAttachment(@PathVariable("identifier") String identifier, @PathVariable("issueKey") String issueKey,
                                    @PathVariable String fileKey, Principal principal) {
         User currentUser = userRepository.findByEmail(principal.getName());

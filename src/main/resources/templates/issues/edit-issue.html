@@ -360,10 +360,12 @@
                         </form>
 
                         <!-- DELETE ISSUE BUTTON -->
-                        <a th:href="@{'/issues/' + ${issue.getProject().getIdentifier()} + '/delete/' + ${issue.getIssueKey()} + '/false'}"
-                           th:attr="onclick=|return confirm('Are you sure you want to delete Issue &quot;${issue.issueKey}&quot;?')|"
-                           class="btn btn-sm btn-danger"><i data-feather="alert-triangle" class="me-1"></i>Delete Issue
-                        </a>
+                        <form method="post" th:action="@{'/issues/' + ${issue.getProject().getIdentifier()} + '/delete/' + ${issue.getIssueKey()} + '/false'}">
+                            <button type="submit" class="btn btn-sm btn-danger"
+                                    th:attr="data-confirm=|Are you sure you want to delete Issue &quot;${issue.issueKey}&quot;?|">
+                                <i data-feather="alert-triangle" class="me-1"></i>Delete Issue
+                            </button>
+                        </form>
                     </div>
 
                 </main>
@@ -380,6 +382,7 @@
         </div>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
         <script src="/js/scripts.js"></script>
+        <script src="/js/confirm-submit.js"></script>
         <script src="https://unpkg.com/easymde/dist/easymde.min.js" crossorigin="anonymous"></script>
         <script src="/js/markdown.js"></script>
         <script>
