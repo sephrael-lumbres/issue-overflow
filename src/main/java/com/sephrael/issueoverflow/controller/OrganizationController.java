@@ -7,6 +7,7 @@ import com.sephrael.issueoverflow.entity.User;
 import com.sephrael.issueoverflow.repository.OrganizationRepository;
 import com.sephrael.issueoverflow.repository.RoleRepository;
 import com.sephrael.issueoverflow.repository.UserRepository;
+import com.sephrael.issueoverflow.service.TokenGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
@@ -19,7 +20,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.security.Principal;
 import java.util.Objects;
-import java.util.Random;
 
 @Controller
 @RequestMapping("/organization")
@@ -73,23 +73,18 @@ public class OrganizationController {
         return "organization/create-organization";
     }
 
-    public static String generateRandomAccessKey(int len) {
-        String chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-        Random random = new Random();
-        StringBuilder stringBuilder = new StringBuilder(len);
-        for (int i = 0; i < len; i++)
-            stringBuilder.append(chars.charAt(random.nextInt(chars.length())));
-        return stringBuilder.toString();
-    }
-
     @PostMapping("/save")
     public String createOrganization(OrganizationForm form, Principal principal,
                                      HttpServletRequest request, HttpServletResponse response) {
         User currentUser = userRepository.findByEmail(principal.getName());
+
+        // a member of an organization must leave it before creating another
+        if(currentUser.getOrganization() != null)
+            return "redirect:/organization";
+
         Organization organization = new Organization();
         organization.setName(form.name());
-        String accessKey = generateRandomAccessKey(10);
-        organization.setAccessKey(accessKey);
+        organization.setAccessKey(TokenGenerator.newAccessKey());
 
         // this connects the current user to the newly created Organization
         organization.addToUser(currentUser);
@@ -131,25 +126,29 @@ public class OrganizationController {
 
     @PostMapping("/joining")
     public String joinOrganization(@RequestParam(value = "accessKey") String accessKey, Principal principal,
-                                   HttpServletRequest request, HttpServletResponse response) {
+                                   HttpServletRequest request, HttpServletResponse response,
+                                   RedirectAttributes redirectAttributes) {
         User currentUser = userRepository.findByEmail(principal.getName());
+
+        // a member of an organization must leave it before joining another; otherwise they would keep their role
+        if(currentUser.getOrganization() != null)
+            return "redirect:/organization";
+
         Organization organization = organizationRepository.findByAccessKey(accessKey);
 
-        // if the Organization that was requested to be joined, has ZERO members, grant the User with the Project Manager role
-        if(organization.getUsers().size() == 0) {
-            roleRepository.findByName("Project Manager").addToUser(currentUser);
-            userRepository.save(currentUser);
+        if(organization == null) {
+            redirectAttributes.addFlashAttribute("joinOrganizationError", "No organization matches that access code.");
+            return "redirect:/organization/join";
         }
 
-        // this gets the access key input by the user from the "Join Organization Form" and uses the access key to find
-        // the associated Organization and adds the current user to the desired Organization
-        organizationRepository.findByAccessKey(accessKey).addToUser(currentUser);
-
-        // after adding the current user to the desired Organization, this saves the Organization
-        organizationRepository.save(organizationRepository.findByAccessKey(accessKey));
+        // the first member of an Organization becomes its Project Manager; everyone after joins as a Guest
+        boolean isFirstMember = organization.getUsers().isEmpty();
+        roleRepository.findByName(isFirstMember ? "Project Manager" : "Guest").addToUser(currentUser);
+        organization.addToUser(currentUser);
+        userRepository.save(currentUser);
 
         // logs out the Current User to allow the Authorization of 'Project Manager'
-        if(organization.getUsers().size() == 0)
+        if(isFirstMember)
             new SecurityContextLogoutHandler().logout(request, response, SecurityContextHolder.getContext().getAuthentication());
 
         return "redirect:/dashboard";
