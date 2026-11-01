@@ -81,15 +81,12 @@ public class UserController {
     }
 
     @PostMapping("/reset-password")
-    public String processResetPassword(@RequestParam("email") String email, HttpServletRequest request, Model model) {
+    public String processResetPassword(@RequestParam("email") String email, Model model) {
         try {
             if(userRepository.findByEmail(email) != null) {
                 String token = TokenGenerator.newToken();
-                String siteURL = request.getRequestURL().toString();
-                String resetPasswordLink = siteURL.replace(request.getServletPath(), "") + "/change-password?token=" + token;
-
                 userService.updateResetPasswordToken(token, email);
-                userService.sendPasswordResetEmail(email, resetPasswordLink);
+                userService.sendPasswordResetEmail(email, token);
 
                 // creates a popup alert to let the User know that a registered account has been found and that an Email
                 // has been sent that includes a link to Reset their Password
@@ -285,7 +282,7 @@ public class UserController {
         try {
             User user = userRepository.findByEmail(principal.getName());
 
-            userService.sendVerificationEmail(user, request);
+            userService.sendVerificationEmail(user);
 
             redirectAttributes.addFlashAttribute("verificationEmailSentSuccess", "Verification email has been sent!");
         } catch(Exception exception) {

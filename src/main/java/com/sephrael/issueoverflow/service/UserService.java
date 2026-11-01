@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
-import jakarta.servlet.http.HttpServletRequest;
 import java.io.UnsupportedEncodingException;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -29,6 +28,8 @@ public class UserService {
     private IssueRepository issueRepository;
     @Autowired
     private JavaMailSender mailSender;
+    @Autowired
+    private EmailLinks emailLinks;
 
     public void registerDefaultUser(User user) {
         Role role = roleRepository.findByName("Guest");
@@ -51,7 +52,8 @@ public class UserService {
         return userRepository.findByResetPasswordToken(token);
     }
 
-    public void sendPasswordResetEmail(String recipientEmail, String link) throws MessagingException, UnsupportedEncodingException {
+    public void sendPasswordResetEmail(String recipientEmail, String token) throws MessagingException, UnsupportedEncodingException {
+        String link = emailLinks.passwordReset(token);
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message);
 
@@ -86,10 +88,9 @@ public class UserService {
         userRepository.save(user);
     }
 
-    public void sendVerificationEmail(User user, HttpServletRequest request) throws MessagingException, UnsupportedEncodingException {
+    public void sendVerificationEmail(User user) throws MessagingException, UnsupportedEncodingException {
         String emailVerificationToken = TokenGenerator.newToken();
-        String siteURL = request.getRequestURL().toString();
-        String verifyEmailLink = siteURL.replace(request.getServletPath(), "") + "/verify-email?emailVerificationToken=" + emailVerificationToken;
+        String verifyEmailLink = emailLinks.emailVerification(emailVerificationToken);
 
         user.setEmailVerificationToken(emailVerificationToken);
         userRepository.save(user);
@@ -181,11 +182,10 @@ public class UserService {
         return emailRecipients;
     }
 
-    public void sendEmailNotification(Issue issue, Comment comment, HttpServletRequest request, boolean isCreatedIssue,
+    public void sendEmailNotification(Issue issue, Comment comment, boolean isCreatedIssue,
                                       boolean isComment) throws MessagingException, UnsupportedEncodingException {
         List<User> users = issue.getProject().getUsers();
-        String rootURL = request.getRequestURL().toString();
-        String link = rootURL.replace(request.getServletPath(), "") + "/issues/" + issue.getProject().getIdentifier() + "/view/" + issue.getIssueKey();
+        String link = emailLinks.issue(issue);
         String content;
 
         MimeMessage message = mailSender.createMimeMessage();

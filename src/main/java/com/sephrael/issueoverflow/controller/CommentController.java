@@ -15,7 +15,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.mail.MessagingException;
-import jakarta.servlet.http.HttpServletRequest;
 import java.io.UnsupportedEncodingException;
 import java.security.Principal;
 import java.util.Objects;
@@ -36,7 +35,7 @@ public class CommentController {
 
     @PostMapping("/new")
     public String addComment(@PathVariable(value = "issueKey") String issueKey, CommentForm form, Principal principal,
-                             @PathVariable String identifier, HttpServletRequest request) throws MessagingException, UnsupportedEncodingException {
+                             @PathVariable String identifier) throws MessagingException, UnsupportedEncodingException {
         User currentUser = userRepository.findByEmail(principal.getName());
 
         if(currentUser.getOrganization() == null)
@@ -51,7 +50,7 @@ public class CommentController {
         comment.setIsEdited(false);
         commentRepository.save(comment);
 
-        userService.sendEmailNotification(issue, comment, request, false, true);
+        userService.sendEmailNotification(issue, comment, false, true);
 
         return "redirect:/issues/{identifier}/view/" + issueKey;
     }
@@ -62,7 +61,6 @@ public class CommentController {
                               @PathVariable(value = "issueKey") String issueKey,
                               @PathVariable String identifier, Principal principal) {
         User currentUser = userRepository.findByEmail(principal.getName());
-        Project currentProject = projectRepository.findByIdentifierAndOrganization(identifier, currentUser.getOrganization());
 
         if(currentUser.getOrganization() == null)
             return "organization/select-organization";

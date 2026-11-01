@@ -3,15 +3,21 @@ package com.sephrael.issueoverflow.support;
 import com.sephrael.issueoverflow.entity.*;
 import com.sephrael.issueoverflow.repository.*;
 import com.sephrael.issueoverflow.service.AWSFileService;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
+import org.junit.jupiter.api.BeforeEach;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -26,6 +32,8 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestBuilders.formLogin;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 
@@ -40,6 +48,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * <p>
  * S3 calls go to an S3Mock container (path-style, signatures not checked)
  * that starts with the bucket named in application-test.properties.
+ * <p>
+ * Mail goes to a mock JavaMailSender, so tests can read what would have been
+ * sent; Mockito resets it after each test.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -80,6 +91,8 @@ public abstract class WebIntegrationTestBase {
     protected AWSFileService awsFileService;
     @Autowired
     private PlatformTransactionManager transactionManager;
+    @MockitoBean
+    protected JavaMailSender mailSender;
 
     @DynamicPropertySource
     static void datasource(DynamicPropertyRegistry registry) {
@@ -92,6 +105,18 @@ public abstract class WebIntegrationTestBase {
 
     protected static String uniqueSuffix() {
         return UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+    }
+
+    @BeforeEach
+    protected void stubMailSender() {
+        when(mailSender.createMimeMessage()).thenAnswer(invocation -> new MimeMessage((Session) null));
+    }
+
+    // The HTML body of the one email sent so far in the current test.
+    protected String sentEmailBody() throws Exception {
+        ArgumentCaptor<MimeMessage> message = ArgumentCaptor.forClass(MimeMessage.class);
+        verify(mailSender).send(message.capture());
+        return (String) message.getValue().getContent();
     }
 
     protected void inTransaction(Runnable work) {

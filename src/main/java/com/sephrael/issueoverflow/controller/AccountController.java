@@ -234,7 +234,7 @@ public class AccountController {
             userRepository.save(user);
 
             if(user.isNotificationsEnabled() && !user.isEmailVerified()) {
-                userService.sendVerificationEmail(user, request);
+                userService.sendVerificationEmail(user);
                 redirectAttributes.addFlashAttribute("notificationsSuccess", "Your notification settings have been saved! Please check your email for a link to verify your account.");
             } else
                 redirectAttributes.addFlashAttribute("notificationsSuccess", "Your notification settings have been saved!");
