@@ -8,8 +8,11 @@ import com.sephrael.issueoverflow.repository.*;
 import com.sephrael.issueoverflow.service.AWSFileService;
 import com.sephrael.issueoverflow.service.TokenGenerator;
 import com.sephrael.issueoverflow.service.UserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.repository.query.Param;
+import org.springframework.mail.MailException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
@@ -29,6 +32,8 @@ import java.util.Objects;
 
 @Controller
 public class UserController {
+
+    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
     @Autowired
     private UserRepository userRepository;
@@ -82,23 +87,20 @@ public class UserController {
 
     @PostMapping("/reset-password")
     public String processResetPassword(@RequestParam("email") String email, Model model) {
-        try {
-            if(userRepository.findByEmail(email) != null) {
-                String token = TokenGenerator.newToken();
-                userService.updateResetPasswordToken(token, email);
-                userService.sendPasswordResetEmail(email, token);
+        // The page says the same thing whether or not the address has an account, so it can't be used to find out who
+        // is registered. A failed send is logged rather than shown, for the same reason.
+        if(userRepository.findByEmail(email) != null) {
+            String token = TokenGenerator.newToken();
+            userService.updateResetPasswordToken(token, email);
 
-                // creates a popup alert to let the User know that a registered account has been found and that an Email
-                // has been sent that includes a link to Reset their Password
-                model.addAttribute("isEmailSent", true);
-            } else {
-                // creates a popup alert to let the User know that the Email Address they entered is not associated
-                // with any registered account
-                model.addAttribute("isFound", false);
+            try {
+                userService.sendPasswordResetEmail(email, token);
+            } catch (UnsupportedEncodingException | MessagingException | MailException exception) {
+                logger.warn("Could not send a password reset email", exception);
             }
-        } catch (UnsupportedEncodingException | MessagingException exception) {
-            model.addAttribute("error", "Error while sending email");
         }
+
+        model.addAttribute("resetRequested", true);
 
         return "reset-password";
     }
