@@ -26,6 +26,7 @@ import jakarta.mail.MessagingException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.security.Principal;
 import java.util.List;
 import java.util.Objects;
@@ -273,7 +274,8 @@ public class UserController {
         return "account-settings/verified-email";
     }
 
-    @RequestMapping("/resend-verification-email")
+    // POST only: it replaces the verification token and sends an email.
+    @PostMapping("/resend-verification-email")
     public String resendVerificationEmail(Principal principal, HttpServletRequest request, RedirectAttributes redirectAttributes) {
 
         try {
@@ -286,7 +288,21 @@ public class UserController {
             redirectAttributes.addFlashAttribute("verificationEmailSentError", "An error has occurred while attempting to send a verification email.");
         }
 
-        return "redirect:" + request.getHeader("Referer");
+        return "redirect:" + sameSitePath(request.getHeader("Referer"));
+    }
+
+    // Back to the page the form was on. Only the path of the Referer is kept, so the redirect can't leave this site.
+    static String sameSitePath(String referer) {
+        if(referer != null) {
+            try {
+                String path = URI.create(referer).getRawPath();
+                if(path != null && path.startsWith("/") && !path.startsWith("//"))
+                    return path;
+            } catch(IllegalArgumentException exception) {
+                // not a valid URI; fall back to the dashboard
+            }
+        }
+        return "/dashboard";
     }
 
 //    @GetMapping(path = "/users/json")
