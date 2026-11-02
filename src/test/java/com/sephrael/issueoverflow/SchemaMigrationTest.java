@@ -30,7 +30,7 @@ class SchemaMigrationTest extends RepositoryTestBase {
     void migrationsCreateTheSchemaIncludingAuditTables() {
         assertThat(flyway.info().applied())
                 .extracting(info -> info.getVersion().getVersion(), MigrationInfo::getState)
-                .containsExactly(tuple("1", MigrationState.SUCCESS), tuple("2", MigrationState.SUCCESS));
+                .containsExactly(tuple("1", MigrationState.SUCCESS), tuple("2", MigrationState.SUCCESS), tuple("3", MigrationState.SUCCESS));
 
         String sql = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'";
         List<String> tables = jdbcTemplate.queryForList(sql, String.class);

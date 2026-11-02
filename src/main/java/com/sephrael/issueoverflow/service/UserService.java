@@ -1,5 +1,6 @@
 package com.sephrael.issueoverflow.service;
 
+import com.sephrael.issueoverflow.configuration.AppProperties;
 import com.sephrael.issueoverflow.entity.*;
 import com.sephrael.issueoverflow.repository.IssueRepository;
 import com.sephrael.issueoverflow.repository.RoleRepository;
@@ -9,11 +10,13 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.util.HtmlUtils;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
-import jakarta.servlet.http.HttpServletRequest;
 import java.io.UnsupportedEncodingException;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Objects;
@@ -29,6 +32,10 @@ public class UserService {
     private IssueRepository issueRepository;
     @Autowired
     private JavaMailSender mailSender;
+    @Autowired
+    private EmailLinks emailLinks;
+    @Autowired
+    private AppProperties appProperties;
 
     public void registerDefaultUser(User user) {
         Role role = roleRepository.findByName("Guest");
@@ -42,16 +49,49 @@ public class UserService {
         User user = userRepository.findByEmail(email);
 
         if(user != null) {
-            user.setResetPasswordToken(token);
+            user.setResetPasswordToken(TokenGenerator.hash(token));
+            user.setResetPasswordTokenExpiresAt(LocalDateTime.now().plus(appProperties.passwordResetTtl()));
             userRepository.save(user);
         }
     }
 
+    // The user a reset link belongs to, or null when the token is unknown, used or expired.
     public User getUserByResetPasswordToken(String token) {
-        return userRepository.findByResetPasswordToken(token);
+        if(!StringUtils.hasText(token))
+            return null;
+
+        User user = userRepository.findByResetPasswordToken(TokenGenerator.hash(token));
+
+        if(user == null || isExpired(user.getResetPasswordTokenExpiresAt()))
+            return null;
+
+        return user;
     }
 
-    public void sendPasswordResetEmail(String recipientEmail, String link) throws MessagingException, UnsupportedEncodingException {
+    // Marks the email address verified if the token is valid, and uses the token up. Returns whether it was valid.
+    public boolean verifyEmail(String token) {
+        if(!StringUtils.hasText(token))
+            return false;
+
+        User user = userRepository.findByEmailVerificationToken(TokenGenerator.hash(token));
+
+        if(user == null || isExpired(user.getEmailVerificationTokenExpiresAt()))
+            return false;
+
+        user.setEmailVerified(true);
+        user.setEmailVerificationToken(null);
+        user.setEmailVerificationTokenExpiresAt(null);
+        userRepository.save(user);
+
+        return true;
+    }
+
+    private static boolean isExpired(LocalDateTime expiresAt) {
+        return expiresAt == null || !expiresAt.isAfter(LocalDateTime.now());
+    }
+
+    public void sendPasswordResetEmail(String recipientEmail, String token) throws MessagingException, UnsupportedEncodingException {
+        String link = HtmlUtils.htmlEscape(emailLinks.passwordReset(token));
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message);
 
@@ -82,16 +122,16 @@ public class UserService {
         String encodedPassword = passwordEncoder.encode(newPassword);
         user.setPassword(encodedPassword);
         user.setResetPasswordToken(null);
-
+        user.setResetPasswordTokenExpiresAt(null);
         userRepository.save(user);
     }
 
-    public void sendVerificationEmail(User user, HttpServletRequest request) throws MessagingException, UnsupportedEncodingException {
+    public void sendVerificationEmail(User user) throws MessagingException, UnsupportedEncodingException {
         String emailVerificationToken = TokenGenerator.newToken();
-        String siteURL = request.getRequestURL().toString();
-        String verifyEmailLink = siteURL.replace(request.getServletPath(), "") + "/verify-email?emailVerificationToken=" + emailVerificationToken;
+        String verifyEmailLink = HtmlUtils.htmlEscape(emailLinks.emailVerification(emailVerificationToken));
 
-        user.setEmailVerificationToken(emailVerificationToken);
+        user.setEmailVerificationToken(TokenGenerator.hash(emailVerificationToken));
+        user.setEmailVerificationTokenExpiresAt(LocalDateTime.now().plus(appProperties.emailVerificationTtl()));
         userRepository.save(user);
 
         MimeMessage message = mailSender.createMimeMessage();
@@ -102,7 +142,7 @@ public class UserService {
 
         String subject = "Here is the link to verify your email address";
 
-        String content = "<p>Hello " + user.getFullName() + ",</p>"
+        String content = "<p>Hello " + HtmlUtils.htmlEscape(user.getFullName()) + ",</p>"
                 + "<p>You have requested to verify your email address to receive notifications.</p>"
                 + "<p>Click the link below to verify your email address:</p>"
                 + "<p><a href=\"" + verifyEmailLink + "\">Verify Email</a></p>"
@@ -181,11 +221,12 @@ public class UserService {
         return emailRecipients;
     }
 
-    public void sendEmailNotification(Issue issue, Comment comment, HttpServletRequest request, boolean isCreatedIssue,
+    public void sendEmailNotification(Issue issue, Comment comment, boolean isCreatedIssue,
                                       boolean isComment) throws MessagingException, UnsupportedEncodingException {
         List<User> users = issue.getProject().getUsers();
-        String rootURL = request.getRequestURL().toString();
-        String link = rootURL.replace(request.getServletPath(), "") + "/issues/" + issue.getProject().getIdentifier() + "/view/" + issue.getIssueKey();
+        // names, titles and keys are user input: escape them, as the HTML body would render them
+        String link = HtmlUtils.htmlEscape(emailLinks.issue(issue));
+        String issueKey = HtmlUtils.htmlEscape(issue.getIssueKey());
         String content;
 
         MimeMessage message = mailSender.createMimeMessage();
@@ -201,7 +242,8 @@ public class UserService {
 
             // if notification is for a newly created issue
             if (isCreatedIssue && !isComment) {
-                content = "<h2>" + issue.getUser().getFullName() + " added a new issue to " + issue.getProject().getName() + ".</h2>"
+                content = "<h2>" + HtmlUtils.htmlEscape(issue.getUser().getFullName()) + " added a new issue to "
+                        + HtmlUtils.htmlEscape(issue.getProject().getName()) + ".</h2>"
                         + "<p>Click the link below to view the full details of this issue:</p>"
                         + "<p><a href=\"" + link + "\">" + link + "</a></p>"
                         + "<br>"
@@ -209,7 +251,8 @@ public class UserService {
                         + "<p><a href=\"" + link + "\">" + link + "</a></p>";
                 // else if notification is for an updated issue
             } else if (!isCreatedIssue && !isComment) {
-                content = "<h2>Details for " + issue.getIssueKey() + " have been updated by " + issue.getUpdatedBy().getFullName() + ".</h2>"
+                content = "<h2>Details for " + issueKey + " have been updated by "
+                        + HtmlUtils.htmlEscape(issue.getUpdatedBy().getFullName()) + ".</h2>"
                         + "<p>Click the link below to view the updated details of this issue:</p>"
                         + "<p><a href=\"" + link + "\">" + link + "</a></p>"
                         + "<br>"
@@ -218,7 +261,7 @@ public class UserService {
                         + "<p>Updated: " + issue.getDateUpdated().format(DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm:ss")) + "</p>";
                 // else, the notification is for a new comment
             } else {
-                content = "<h2>" + comment.getUser().getFullName() + " added a new comment to " + comment.getIssue().getIssueKey() + ".</h2>"
+                content = "<h2>" + HtmlUtils.htmlEscape(comment.getUser().getFullName()) + " added a new comment to " + issueKey + ".</h2>"
                         + "<p>Click the link below to view the full details of this issue:</p>"
                         + "<p><a href=\"" + link + "\">" + link + "</a></p>"
                         + "<br>"

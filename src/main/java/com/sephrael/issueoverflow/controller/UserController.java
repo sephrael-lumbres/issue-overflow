@@ -8,8 +8,11 @@ import com.sephrael.issueoverflow.repository.*;
 import com.sephrael.issueoverflow.service.AWSFileService;
 import com.sephrael.issueoverflow.service.TokenGenerator;
 import com.sephrael.issueoverflow.service.UserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.repository.query.Param;
+import org.springframework.mail.MailException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
@@ -23,12 +26,15 @@ import jakarta.mail.MessagingException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.security.Principal;
 import java.util.List;
 import java.util.Objects;
 
 @Controller
 public class UserController {
+
+    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
     @Autowired
     private UserRepository userRepository;
@@ -81,27 +87,21 @@ public class UserController {
     }
 
     @PostMapping("/reset-password")
-    public String processResetPassword(@RequestParam("email") String email, HttpServletRequest request, Model model) {
-        try {
-            if(userRepository.findByEmail(email) != null) {
-                String token = TokenGenerator.newToken();
-                String siteURL = request.getRequestURL().toString();
-                String resetPasswordLink = siteURL.replace(request.getServletPath(), "") + "/change-password?token=" + token;
+    public String processResetPassword(@RequestParam("email") String email, Model model) {
+        // The page says the same thing whether or not the address has an account, so it can't be used to find out who
+        // is registered. A failed send is logged rather than shown, for the same reason.
+        if(userRepository.findByEmail(email) != null) {
+            String token = TokenGenerator.newToken();
+            userService.updateResetPasswordToken(token, email);
 
-                userService.updateResetPasswordToken(token, email);
-                userService.sendPasswordResetEmail(email, resetPasswordLink);
-
-                // creates a popup alert to let the User know that a registered account has been found and that an Email
-                // has been sent that includes a link to Reset their Password
-                model.addAttribute("isEmailSent", true);
-            } else {
-                // creates a popup alert to let the User know that the Email Address they entered is not associated
-                // with any registered account
-                model.addAttribute("isFound", false);
+            try {
+                userService.sendPasswordResetEmail(email, token);
+            } catch (UnsupportedEncodingException | MessagingException | MailException exception) {
+                logger.warn("Could not send a password reset email", exception);
             }
-        } catch (UnsupportedEncodingException | MessagingException exception) {
-            model.addAttribute("error", "Error while sending email");
         }
+
+        model.addAttribute("resetRequested", true);
 
         return "reset-password";
     }
@@ -265,34 +265,44 @@ public class UserController {
 
     @RequestMapping("/verify-email")
     public String showEmailVerifiedPage(@Param(value = "emailVerificationToken") String emailVerificationToken, Model model) {
-        User user = userRepository.findByEmailVerificationToken(emailVerificationToken);
-
-        if(user == null)
-            model.addAttribute("userIsNull", true);
-        else {
+        // unknown, used and expired links all show the same "invalid link" page
+        if(userService.verifyEmail(emailVerificationToken))
             model.addAttribute("userIsValid", true);
-            user.setEmailVerified(true);
-            user.setEmailVerificationToken(null);
-            userRepository.save(user);
-        }
+        else
+            model.addAttribute("userIsNull", true);
 
         return "account-settings/verified-email";
     }
 
-    @RequestMapping("/resend-verification-email")
+    // POST only: it replaces the verification token and sends an email.
+    @PostMapping("/resend-verification-email")
     public String resendVerificationEmail(Principal principal, HttpServletRequest request, RedirectAttributes redirectAttributes) {
 
         try {
             User user = userRepository.findByEmail(principal.getName());
 
-            userService.sendVerificationEmail(user, request);
+            userService.sendVerificationEmail(user);
 
             redirectAttributes.addFlashAttribute("verificationEmailSentSuccess", "Verification email has been sent!");
         } catch(Exception exception) {
             redirectAttributes.addFlashAttribute("verificationEmailSentError", "An error has occurred while attempting to send a verification email.");
         }
 
-        return "redirect:" + request.getHeader("Referer");
+        return "redirect:" + sameSitePath(request.getHeader("Referer"));
+    }
+
+    // Back to the page the form was on. Only the path of the Referer is kept, so the redirect can't leave this site.
+    static String sameSitePath(String referer) {
+        if(referer != null) {
+            try {
+                String path = URI.create(referer).getRawPath();
+                if(path != null && path.startsWith("/") && !path.startsWith("//"))
+                    return path;
+            } catch(IllegalArgumentException exception) {
+                // not a valid URI; fall back to the dashboard
+            }
+        }
+        return "/dashboard";
     }
 
 //    @GetMapping(path = "/users/json")

@@ -72,10 +72,17 @@ public class AccountController {
         try {
             User userToBeUpdated = userRepository.findUserById(id);
             String previousEmail = userToBeUpdated.getEmail();
-
             userToBeUpdated.setFirstName(form.firstName());
             userToBeUpdated.setLastName(form.lastName());
             userToBeUpdated.setEmail(form.email());
+            // a new address has to be verified again before it receives notifications, and an old reset link stops working
+            if(!Objects.equals(previousEmail, form.email())) {
+                userToBeUpdated.setEmailVerified(false);
+                userToBeUpdated.setEmailVerificationToken(null);
+                userToBeUpdated.setEmailVerificationTokenExpiresAt(null);
+                userToBeUpdated.setResetPasswordToken(null);
+                userToBeUpdated.setResetPasswordTokenExpiresAt(null);
+            }
             userRepository.save(userToBeUpdated);
 
             if(!Objects.equals(previousEmail, form.email())) {
@@ -113,7 +120,8 @@ public class AccountController {
     public String saveAccountSecurityChanges(@PathVariable("id") long id, RedirectAttributes redirectAttributes,
                                              @RequestParam("currentPassword") String currentPassword,
                                              @RequestParam("newPassword") String newPassword,
-                                             @RequestParam("confirmPassword") String confirmPassword, Principal principal) {
+                                             @RequestParam("confirmPassword") String confirmPassword, Principal principal,
+                                             HttpServletRequest request, HttpServletResponse response) {
         User currentUser = userRepository.findByEmail(principal.getName());
 
         if(currentUser.getOrganization() == null)
@@ -129,10 +137,16 @@ public class AccountController {
         if(passwordEncoder.matches(currentPassword, userToBeUpdated.getPassword()) && Objects.equals(newPassword, confirmPassword)) {
             String encodedPassword = passwordEncoder.encode(newPassword);
             userToBeUpdated.setPassword(encodedPassword);
+            // a reset link requested before the change stops working
+            userToBeUpdated.setResetPasswordToken(null);
+            userToBeUpdated.setResetPasswordTokenExpiresAt(null);
 
             userRepository.save(userToBeUpdated);
-            // popup alerts are displayed accordingly
-            redirectAttributes.addFlashAttribute("passwordChangeSuccess", "Your password has been successfully changed!");
+
+            // every session that logged in with the old password ends, this one too (the others at their next request)
+            redirectAttributes.addFlashAttribute("success", "Your password has been changed. Please log in with your new password.");
+            new SecurityContextLogoutHandler().logout(request, response, SecurityContextHolder.getContext().getAuthentication());
+            return "redirect:/login";
         } else if(!passwordEncoder.matches(currentPassword, userToBeUpdated.getPassword())) {
             redirectAttributes.addFlashAttribute("incorrectOldPassword", "Your current password does not match!");
         } else if(!Objects.equals(newPassword, confirmPassword)) {
@@ -234,7 +248,7 @@ public class AccountController {
             userRepository.save(user);
 
             if(user.isNotificationsEnabled() && !user.isEmailVerified()) {
-                userService.sendVerificationEmail(user, request);
+                userService.sendVerificationEmail(user);
                 redirectAttributes.addFlashAttribute("notificationsSuccess", "Your notification settings have been saved! Please check your email for a link to verify your account.");
             } else
                 redirectAttributes.addFlashAttribute("notificationsSuccess", "Your notification settings have been saved!");

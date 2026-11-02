@@ -1,11 +1,13 @@
 package com.sephrael.issueoverflow.configuration;
 
+import com.sephrael.issueoverflow.repository.UserRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -19,8 +21,10 @@ public class WebSecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, UserRepository userRepository) throws Exception {
         http
+            // logs out sessions whose role or account changed since login, before the rules below see them
+            .addFilterBefore(new StaleSessionFilter(userRepository), AuthorizationFilter.class)
             .authorizeHttpRequests(authorize -> authorize
                 // paths that anyone can access
                 .requestMatchers("/register", "/login", "/process_register").permitAll()

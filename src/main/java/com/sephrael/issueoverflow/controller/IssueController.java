@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.mail.MessagingException;
-import jakarta.servlet.http.HttpServletRequest;
 import java.io.UnsupportedEncodingException;
 import java.security.Principal;
 import java.util.List;
@@ -141,7 +140,7 @@ public class IssueController {
     }
 
     @PostMapping(value = "/new")
-    public String saveNewIssue(IssueForm form, Principal principal, HttpServletRequest request,
+    public String saveNewIssue(IssueForm form, Principal principal,
                                @RequestParam(value = "files", required = false) MultipartFile[] files) throws MessagingException, UnsupportedEncodingException {
         User currentUser = userRepository.findByEmail(principal.getName());
         Organization currentOrganization = currentUser.getOrganization();
@@ -172,13 +171,13 @@ public class IssueController {
             }
         }
 
-        userService.sendEmailNotification(issue, null, request, true, false);
+        userService.sendEmailNotification(issue, null, true, false);
 
         return ("redirect:/issues/" + issue.getProject().getIdentifier() + "/view/" + issue.getIssueKey());
     }
 
     @PostMapping(value = "/update")
-    public String updateIssue(@RequestParam("id") Long id, IssueForm form, Principal principal, HttpServletRequest request,
+    public String updateIssue(@RequestParam("id") Long id, IssueForm form, Principal principal,
                               @RequestParam(value = "files", required = false) MultipartFile[] files,
                               @RequestParam(value = "isAttachFileForm", required = false) boolean isAttachFileForm) throws MessagingException, UnsupportedEncodingException {
         User currentUser = userRepository.findByEmail(principal.getName());
@@ -213,7 +212,7 @@ public class IssueController {
             }
         }
 
-        userService.sendEmailNotification(previousIssue, null, request, false, false);
+        userService.sendEmailNotification(previousIssue, null, false, false);
 
         return ("redirect:/issues/" + previousIssue.getProject().getIdentifier() + "/view/" + previousIssue.getIssueKey());
     }

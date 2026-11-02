@@ -7,6 +7,7 @@ import org.hibernate.envers.NotAudited;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -80,9 +81,13 @@ public class User {
         comment.setUser(this);
     }
 
+    // stored as a SHA-256 hash (TokenGenerator.hash), never as the token itself
     @NotAudited
     @Column(unique = true)
     private String resetPasswordToken;
+
+    @NotAudited
+    private LocalDateTime resetPasswordTokenExpiresAt;
 
     @NotAudited
     private boolean hasProfilePicture;
@@ -114,9 +119,13 @@ public class User {
     @NotAudited
     private boolean isEmailVerified;
 
+    // stored as a SHA-256 hash (TokenGenerator.hash), never as the token itself
     @NotAudited
     @Column(unique = true)
     private String emailVerificationToken;
+
+    @NotAudited
+    private LocalDateTime emailVerificationTokenExpiresAt;
 
     public Long getId() {
         return id;
@@ -288,5 +297,21 @@ public class User {
 
     public void setEmailVerificationToken(String emailVerificationToken) {
         this.emailVerificationToken = emailVerificationToken;
+    }
+
+    public LocalDateTime getResetPasswordTokenExpiresAt() {
+        return resetPasswordTokenExpiresAt;
+    }
+
+    public void setResetPasswordTokenExpiresAt(LocalDateTime resetPasswordTokenExpiresAt) {
+        this.resetPasswordTokenExpiresAt = resetPasswordTokenExpiresAt;
+    }
+
+    public LocalDateTime getEmailVerificationTokenExpiresAt() {
+        return emailVerificationTokenExpiresAt;
+    }
+
+    public void setEmailVerificationTokenExpiresAt(LocalDateTime emailVerificationTokenExpiresAt) {
+        this.emailVerificationTokenExpiresAt = emailVerificationTokenExpiresAt;
     }
 }

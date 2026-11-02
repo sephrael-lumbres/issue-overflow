@@ -24,6 +24,7 @@
                                 <div th:text="${success}" th:if="${success}" id="popupAlerts" class="alert alert-success alert-dismissible fade show text-center mt-4" role="alert"></div>
                                 <div th:text="${accountDeletionSuccess}" th:if="${accountDeletionSuccess}" id="popupAlerts" class="alert alert-success alert-dismissible fade show text-center mt-4" role="alert"></div>
                                 <div th:text="${error}" th:if="${error}" id="popupAlerts" class="alert alert-danger alert-dismissible fade show text-center mt-4" role="alert"></div>
+                                <div th:if="${param.expired}" class="alert alert-warning text-center mt-4" role="alert">Your role or account changed since you logged in. Please log in again.</div>
 
                                 <!-- Social login form-->
                                 <div class="card my-5">
