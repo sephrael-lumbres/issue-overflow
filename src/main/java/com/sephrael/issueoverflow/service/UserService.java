@@ -9,6 +9,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.HtmlUtils;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -53,7 +54,7 @@ public class UserService {
     }
 
     public void sendPasswordResetEmail(String recipientEmail, String token) throws MessagingException, UnsupportedEncodingException {
-        String link = emailLinks.passwordReset(token);
+        String link = HtmlUtils.htmlEscape(emailLinks.passwordReset(token));
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message);
 
@@ -90,7 +91,7 @@ public class UserService {
 
     public void sendVerificationEmail(User user) throws MessagingException, UnsupportedEncodingException {
         String emailVerificationToken = TokenGenerator.newToken();
-        String verifyEmailLink = emailLinks.emailVerification(emailVerificationToken);
+        String verifyEmailLink = HtmlUtils.htmlEscape(emailLinks.emailVerification(emailVerificationToken));
 
         user.setEmailVerificationToken(emailVerificationToken);
         userRepository.save(user);
@@ -103,7 +104,7 @@ public class UserService {
 
         String subject = "Here is the link to verify your email address";
 
-        String content = "<p>Hello " + user.getFullName() + ",</p>"
+        String content = "<p>Hello " + HtmlUtils.htmlEscape(user.getFullName()) + ",</p>"
                 + "<p>You have requested to verify your email address to receive notifications.</p>"
                 + "<p>Click the link below to verify your email address:</p>"
                 + "<p><a href=\"" + verifyEmailLink + "\">Verify Email</a></p>"
@@ -185,7 +186,9 @@ public class UserService {
     public void sendEmailNotification(Issue issue, Comment comment, boolean isCreatedIssue,
                                       boolean isComment) throws MessagingException, UnsupportedEncodingException {
         List<User> users = issue.getProject().getUsers();
-        String link = emailLinks.issue(issue);
+        // names, titles and keys are user input: escape them, as the HTML body would render them
+        String link = HtmlUtils.htmlEscape(emailLinks.issue(issue));
+        String issueKey = HtmlUtils.htmlEscape(issue.getIssueKey());
         String content;
 
         MimeMessage message = mailSender.createMimeMessage();
@@ -201,7 +204,8 @@ public class UserService {
 
             // if notification is for a newly created issue
             if (isCreatedIssue && !isComment) {
-                content = "<h2>" + issue.getUser().getFullName() + " added a new issue to " + issue.getProject().getName() + ".</h2>"
+                content = "<h2>" + HtmlUtils.htmlEscape(issue.getUser().getFullName()) + " added a new issue to "
+                        + HtmlUtils.htmlEscape(issue.getProject().getName()) + ".</h2>"
                         + "<p>Click the link below to view the full details of this issue:</p>"
                         + "<p><a href=\"" + link + "\">" + link + "</a></p>"
                         + "<br>"
@@ -209,7 +213,8 @@ public class UserService {
                         + "<p><a href=\"" + link + "\">" + link + "</a></p>";
                 // else if notification is for an updated issue
             } else if (!isCreatedIssue && !isComment) {
-                content = "<h2>Details for " + issue.getIssueKey() + " have been updated by " + issue.getUpdatedBy().getFullName() + ".</h2>"
+                content = "<h2>Details for " + issueKey + " have been updated by "
+                        + HtmlUtils.htmlEscape(issue.getUpdatedBy().getFullName()) + ".</h2>"
                         + "<p>Click the link below to view the updated details of this issue:</p>"
                         + "<p><a href=\"" + link + "\">" + link + "</a></p>"
                         + "<br>"
@@ -218,7 +223,7 @@ public class UserService {
                         + "<p>Updated: " + issue.getDateUpdated().format(DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm:ss")) + "</p>";
                 // else, the notification is for a new comment
             } else {
-                content = "<h2>" + comment.getUser().getFullName() + " added a new comment to " + comment.getIssue().getIssueKey() + ".</h2>"
+                content = "<h2>" + HtmlUtils.htmlEscape(comment.getUser().getFullName()) + " added a new comment to " + issueKey + ".</h2>"
                         + "<p>Click the link below to view the full details of this issue:</p>"
                         + "<p><a href=\"" + link + "\">" + link + "</a></p>"
                         + "<br>"

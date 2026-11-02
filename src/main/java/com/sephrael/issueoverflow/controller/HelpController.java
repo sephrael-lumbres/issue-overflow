@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.web.util.HtmlUtils;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -70,8 +71,10 @@ public class HelpController {
 
             helper.setSubject(subject);
 
-            message = message.replaceAll("(\r\n|\n)", "<br>");
-            message = message.concat("<br><br>From: " + name + " <br>Email address: " + email);
+            // the body is HTML and every field comes from an anonymous form: escape them before adding line breaks
+            message = HtmlUtils.htmlEscape(message).replaceAll("(\r\n|\n)", "<br>");
+            message = message.concat("<br><br>From: " + HtmlUtils.htmlEscape(name)
+                    + " <br>Email address: " + HtmlUtils.htmlEscape(email));
 
             helper.setText(message, true);
 
