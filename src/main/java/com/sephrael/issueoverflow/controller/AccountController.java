@@ -120,7 +120,8 @@ public class AccountController {
     public String saveAccountSecurityChanges(@PathVariable("id") long id, RedirectAttributes redirectAttributes,
                                              @RequestParam("currentPassword") String currentPassword,
                                              @RequestParam("newPassword") String newPassword,
-                                             @RequestParam("confirmPassword") String confirmPassword, Principal principal) {
+                                             @RequestParam("confirmPassword") String confirmPassword, Principal principal,
+                                             HttpServletRequest request, HttpServletResponse response) {
         User currentUser = userRepository.findByEmail(principal.getName());
 
         if(currentUser.getOrganization() == null)
@@ -141,8 +142,11 @@ public class AccountController {
             userToBeUpdated.setResetPasswordTokenExpiresAt(null);
 
             userRepository.save(userToBeUpdated);
-            // popup alerts are displayed accordingly
-            redirectAttributes.addFlashAttribute("passwordChangeSuccess", "Your password has been successfully changed!");
+
+            // every session that logged in with the old password ends, this one too (the others at their next request)
+            redirectAttributes.addFlashAttribute("success", "Your password has been changed. Please log in with your new password.");
+            new SecurityContextLogoutHandler().logout(request, response, SecurityContextHolder.getContext().getAuthentication());
+            return "redirect:/login";
         } else if(!passwordEncoder.matches(currentPassword, userToBeUpdated.getPassword())) {
             redirectAttributes.addFlashAttribute("incorrectOldPassword", "Your current password does not match!");
         } else if(!Objects.equals(newPassword, confirmPassword)) {
