@@ -1,7 +1,11 @@
 package com.sephrael.issueoverflow.service;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.HexFormat;
 
 public final class TokenGenerator {
 
@@ -18,6 +22,17 @@ public final class TokenGenerator {
         byte[] bytes = new byte[TOKEN_BYTES];
         RANDOM.nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    // What the database stores for an account token: its SHA-256 as 64 hex digits. The tokens are 256 random bits,
+    // so a fast hash is enough; a copy of the users table then holds no working links.
+    public static String hash(String token) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(token.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest);
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("Every Java runtime provides SHA-256", exception);
+        }
     }
 
     // An organization's join key: 10 letters and digits (about 59.5 bits), short enough to type

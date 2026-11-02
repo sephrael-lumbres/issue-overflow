@@ -262,16 +262,11 @@ public class UserController {
 
     @RequestMapping("/verify-email")
     public String showEmailVerifiedPage(@Param(value = "emailVerificationToken") String emailVerificationToken, Model model) {
-        User user = userRepository.findByEmailVerificationToken(emailVerificationToken);
-
-        if(user == null)
-            model.addAttribute("userIsNull", true);
-        else {
+        // unknown, used and expired links all show the same "invalid link" page
+        if(userService.verifyEmail(emailVerificationToken))
             model.addAttribute("userIsValid", true);
-            user.setEmailVerified(true);
-            user.setEmailVerificationToken(null);
-            userRepository.save(user);
-        }
+        else
+            model.addAttribute("userIsNull", true);
 
         return "account-settings/verified-email";
     }

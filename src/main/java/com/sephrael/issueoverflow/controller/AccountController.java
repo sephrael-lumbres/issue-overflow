@@ -72,10 +72,17 @@ public class AccountController {
         try {
             User userToBeUpdated = userRepository.findUserById(id);
             String previousEmail = userToBeUpdated.getEmail();
-
             userToBeUpdated.setFirstName(form.firstName());
             userToBeUpdated.setLastName(form.lastName());
             userToBeUpdated.setEmail(form.email());
+            // a new address has to be verified again before it receives notifications, and an old reset link stops working
+            if(!Objects.equals(previousEmail, form.email())) {
+                userToBeUpdated.setEmailVerified(false);
+                userToBeUpdated.setEmailVerificationToken(null);
+                userToBeUpdated.setEmailVerificationTokenExpiresAt(null);
+                userToBeUpdated.setResetPasswordToken(null);
+                userToBeUpdated.setResetPasswordTokenExpiresAt(null);
+            }
             userRepository.save(userToBeUpdated);
 
             if(!Objects.equals(previousEmail, form.email())) {
@@ -129,6 +136,9 @@ public class AccountController {
         if(passwordEncoder.matches(currentPassword, userToBeUpdated.getPassword()) && Objects.equals(newPassword, confirmPassword)) {
             String encodedPassword = passwordEncoder.encode(newPassword);
             userToBeUpdated.setPassword(encodedPassword);
+            // a reset link requested before the change stops working
+            userToBeUpdated.setResetPasswordToken(null);
+            userToBeUpdated.setResetPasswordTokenExpiresAt(null);
 
             userRepository.save(userToBeUpdated);
             // popup alerts are displayed accordingly

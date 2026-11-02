@@ -1,5 +1,6 @@
 package com.sephrael.issueoverflow.service;
 
+import com.sephrael.issueoverflow.configuration.AppProperties;
 import com.sephrael.issueoverflow.entity.*;
 import com.sephrael.issueoverflow.repository.IssueRepository;
 import com.sephrael.issueoverflow.repository.RoleRepository;
@@ -9,11 +10,13 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.util.HtmlUtils;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import java.io.UnsupportedEncodingException;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Objects;
@@ -31,6 +34,8 @@ public class UserService {
     private JavaMailSender mailSender;
     @Autowired
     private EmailLinks emailLinks;
+    @Autowired
+    private AppProperties appProperties;
 
     public void registerDefaultUser(User user) {
         Role role = roleRepository.findByName("Guest");
@@ -44,13 +49,45 @@ public class UserService {
         User user = userRepository.findByEmail(email);
 
         if(user != null) {
-            user.setResetPasswordToken(token);
+            user.setResetPasswordToken(TokenGenerator.hash(token));
+            user.setResetPasswordTokenExpiresAt(LocalDateTime.now().plus(appProperties.passwordResetTtl()));
             userRepository.save(user);
         }
     }
 
+    // The user a reset link belongs to, or null when the token is unknown, used or expired.
     public User getUserByResetPasswordToken(String token) {
-        return userRepository.findByResetPasswordToken(token);
+        if(!StringUtils.hasText(token))
+            return null;
+
+        User user = userRepository.findByResetPasswordToken(TokenGenerator.hash(token));
+
+        if(user == null || isExpired(user.getResetPasswordTokenExpiresAt()))
+            return null;
+
+        return user;
+    }
+
+    // Marks the email address verified if the token is valid, and uses the token up. Returns whether it was valid.
+    public boolean verifyEmail(String token) {
+        if(!StringUtils.hasText(token))
+            return false;
+
+        User user = userRepository.findByEmailVerificationToken(TokenGenerator.hash(token));
+
+        if(user == null || isExpired(user.getEmailVerificationTokenExpiresAt()))
+            return false;
+
+        user.setEmailVerified(true);
+        user.setEmailVerificationToken(null);
+        user.setEmailVerificationTokenExpiresAt(null);
+        userRepository.save(user);
+
+        return true;
+    }
+
+    private static boolean isExpired(LocalDateTime expiresAt) {
+        return expiresAt == null || !expiresAt.isAfter(LocalDateTime.now());
     }
 
     public void sendPasswordResetEmail(String recipientEmail, String token) throws MessagingException, UnsupportedEncodingException {
@@ -85,7 +122,7 @@ public class UserService {
         String encodedPassword = passwordEncoder.encode(newPassword);
         user.setPassword(encodedPassword);
         user.setResetPasswordToken(null);
-
+        user.setResetPasswordTokenExpiresAt(null);
         userRepository.save(user);
     }
 
@@ -93,7 +130,8 @@ public class UserService {
         String emailVerificationToken = TokenGenerator.newToken();
         String verifyEmailLink = HtmlUtils.htmlEscape(emailLinks.emailVerification(emailVerificationToken));
 
-        user.setEmailVerificationToken(emailVerificationToken);
+        user.setEmailVerificationToken(TokenGenerator.hash(emailVerificationToken));
+        user.setEmailVerificationTokenExpiresAt(LocalDateTime.now().plus(appProperties.emailVerificationTtl()));
         userRepository.save(user);
 
         MimeMessage message = mailSender.createMimeMessage();
