@@ -8,6 +8,7 @@ import org.springframework.mock.web.MockHttpSession;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -74,6 +75,31 @@ class MarkdownSanitizingTest extends WebIntegrationTestBase {
                 .andReturn().getResponse().getContentAsString();
 
         assertThat(page).contains("&lt;img src=x onerror=alert(1)&gt;").doesNotContain("<img src=x");
+    }
+
+    // EasyMDE previews render with marked, which also passes HTML through. Every editor sanitizes its preview, and
+    // every page with an editor loads the sanitizer first and pins the EasyMDE version the option was checked on.
+    @Test
+    void editorPreviewsAreSanitized() throws IOException {
+        String editors = template("static/js/markdown.js");
+
+        assertThat(count(editors, "new EasyMDE(")).isEqualTo(3);
+        assertThat(count(editors, "renderingConfig: sanitizedPreview")).isEqualTo(3);
+        assertThat(editors).contains("sanitizerFunction: (renderedHTML) => sanitizeMarkdownHtml(renderedHTML)");
+
+        for (String page : List.of("create-issue", "edit-issue", "issue-details")) {
+            String source = template("templates/issues/" + page + ".html");
+            assertThat(source).as(page)
+                    .contains("https://unpkg.com/easymde@2.21.0/dist/easymde.min.js")
+                    .contains("https://unpkg.com/easymde@2.21.0/dist/easymde.min.css")
+                    .doesNotContain("https://unpkg.com/easymde/");
+            assertThat(source.indexOf(PURIFY)).as(page).isPositive().isLessThan(source.indexOf(SANITIZER));
+            assertThat(source.indexOf(SANITIZER)).as(page).isLessThan(source.indexOf("<script src=\"/js/markdown.js\"></script>"));
+        }
+    }
+
+    private static int count(String text, String part) {
+        return text.split(Pattern.quote(part), -1).length - 1;
     }
 
     static String template(String path) throws IOException {
