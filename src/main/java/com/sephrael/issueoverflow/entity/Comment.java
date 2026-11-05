@@ -14,6 +14,7 @@ public class Comment {
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
 
+    @Column(columnDefinition = "TEXT")
     private String message;
 
     private boolean isEdited;
