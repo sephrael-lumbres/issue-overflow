@@ -1,5 +1,6 @@
 package com.sephrael.issueoverflow.controller;
 
+import com.sephrael.issueoverflow.controller.form.Passwords;
 import com.sephrael.issueoverflow.controller.form.RegistrationForm;
 import com.sephrael.issueoverflow.entity.Organization;
 import com.sephrael.issueoverflow.entity.Project;
@@ -8,6 +9,7 @@ import com.sephrael.issueoverflow.repository.*;
 import com.sephrael.issueoverflow.service.AWSFileService;
 import com.sephrael.issueoverflow.service.TokenGenerator;
 import com.sephrael.issueoverflow.service.UserService;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +20,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
@@ -57,7 +60,25 @@ public class UserController {
     }
 
     @PostMapping("/process_register")
-    public String processRegister(RegistrationForm form) {
+    public String processRegister(@Valid RegistrationForm form, BindingResult bindingResult, RedirectAttributes redirectAttributes) {
+        if(bindingResult.hasErrors()) {
+            redirectAttributes.addFlashAttribute("registrationError", "Please fill in every field with a valid email address.");
+            return "redirect:/register";
+        }
+
+        String passwordErrorMessage = Passwords.errorMessage(form.password());
+        if(passwordErrorMessage != null) {
+            redirectAttributes.addFlashAttribute("registrationError", passwordErrorMessage);
+            return "redirect:/register";
+        }
+
+        // Said plainly, unlike the reset page: new accounts are enabled at once, so logging in would reveal it anyway.
+        if(userRepository.findByEmail(form.email()) != null) {
+            redirectAttributes.addFlashAttribute("registrationError", "An account with this email address already exists. " +
+                    "Log in, or reset your password if you've forgotten it.");
+            return "redirect:/register";
+        }
+
         // only the form's fields reach the new account; registerDefaultUser sets the role and enables it
         User user = new User();
         user.setFirstName(form.firstName());
@@ -69,6 +90,7 @@ public class UserController {
         user.setPassword(encodedPassword);
 
         userService.registerDefaultUser(user);
+        redirectAttributes.addFlashAttribute("registered", "Your account is ready. Please log in.");
 
         return "redirect:/login";
     }
@@ -131,6 +153,9 @@ public class UserController {
             redirectAttributes.addFlashAttribute("error", "Invalid Token!");
         } else if(!Objects.equals(password, confirmPassword)) {
             redirectAttributes.addFlashAttribute("passwordsDoNotMatch", "Passwords do not match. Please try again.");
+            return "redirect:/change-password?token=" + token;
+        } else if(Passwords.errorMessage(password) != null) {
+            redirectAttributes.addFlashAttribute("passwordError", Passwords.errorMessage(password));
             return "redirect:/change-password?token=" + token;
         } else {
             userService.updatePassword(user, password);

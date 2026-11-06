@@ -6,13 +6,16 @@ import com.sephrael.issueoverflow.repository.*;
 import com.sephrael.issueoverflow.service.AWSFileService;
 import com.sephrael.issueoverflow.service.IssueService;
 import com.sephrael.issueoverflow.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import jakarta.mail.MessagingException;
 import java.io.UnsupportedEncodingException;
@@ -23,6 +26,8 @@ import java.util.Objects;
 @Controller
 @RequestMapping("/issues")
 public class IssueController {
+
+    private static final String ISSUE_FORM_ERROR = "Please enter a title, and check that the title and description aren't too long.";
 
     @Autowired
     private IssueRepository issueRepository;
@@ -140,13 +145,20 @@ public class IssueController {
     }
 
     @PostMapping(value = "/new")
-    public String saveNewIssue(IssueForm form, Principal principal,
-                               @RequestParam(value = "files", required = false) MultipartFile[] files) throws MessagingException, UnsupportedEncodingException {
+    public String saveNewIssue(@Valid IssueForm form, BindingResult bindingResult, Principal principal,
+                               @RequestParam(value = "files", required = false) MultipartFile[] files,
+                               RedirectAttributes redirectAttributes) throws MessagingException, UnsupportedEncodingException {
         User currentUser = userRepository.findByEmail(principal.getName());
         Organization currentOrganization = currentUser.getOrganization();
 
         if(currentOrganization == null)
             return "organization/select-organization";
+
+        if(bindingResult.hasErrors()) {
+            Project project = projectInOrganization(form.project(), currentOrganization);
+            redirectAttributes.addFlashAttribute("issueFormError", ISSUE_FORM_ERROR);
+            return "redirect:/issues/" + project.getIdentifier() + "/new";
+        }
 
         Issue issue = new Issue();
         copyFormFields(form, issue);
@@ -177,9 +189,10 @@ public class IssueController {
     }
 
     @PostMapping(value = "/update")
-    public String updateIssue(@RequestParam("id") Long id, IssueForm form, Principal principal,
+    public String updateIssue(@RequestParam("id") Long id, @Valid IssueForm form, BindingResult bindingResult, Principal principal,
                               @RequestParam(value = "files", required = false) MultipartFile[] files,
-                              @RequestParam(value = "isAttachFileForm", required = false) boolean isAttachFileForm) throws MessagingException, UnsupportedEncodingException {
+                              @RequestParam(value = "isAttachFileForm", required = false) boolean isAttachFileForm,
+                              RedirectAttributes redirectAttributes) throws MessagingException, UnsupportedEncodingException {
         User currentUser = userRepository.findByEmail(principal.getName());
         Organization currentOrganization = currentUser.getOrganization();
 
@@ -191,6 +204,12 @@ public class IssueController {
 
         if(previousIssue == null)
             throw OrganizationScope.notFound();
+
+        // the attach-file form sends only the id and the files, so the other fields are checked only for the edit form
+        if(!isAttachFileForm && bindingResult.hasErrors()) {
+            redirectAttributes.addFlashAttribute("issueFormError", ISSUE_FORM_ERROR);
+            return "redirect:/issues/" + previousIssue.getProject().getIdentifier() + "/edit/" + previousIssue.getIssueKey();
+        }
 
         if(!isAttachFileForm) {
             Project nextProject = projectInOrganization(form.project(), currentOrganization);

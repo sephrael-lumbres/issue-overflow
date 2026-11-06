@@ -10,9 +10,12 @@ import com.sephrael.issueoverflow.repository.IssueRepository;
 import com.sephrael.issueoverflow.repository.ProjectRepository;
 import com.sephrael.issueoverflow.repository.UserRepository;
 import com.sephrael.issueoverflow.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import jakarta.mail.MessagingException;
 import java.io.UnsupportedEncodingException;
@@ -22,6 +25,9 @@ import java.util.Objects;
 @Controller
 @RequestMapping("/issues/{identifier}/view/{issueKey}/comment")
 public class CommentController {
+
+    private static final String COMMENT_ERROR = "Comments can't be empty or too long.";
+
     @Autowired
     private CommentRepository commentRepository;
     @Autowired
@@ -34,12 +40,18 @@ public class CommentController {
     private ProjectRepository projectRepository;
 
     @PostMapping("/new")
-    public String addComment(@PathVariable(value = "issueKey") String issueKey, CommentForm form, Principal principal,
-                             @PathVariable String identifier) throws MessagingException, UnsupportedEncodingException {
+    public String addComment(@PathVariable(value = "issueKey") String issueKey, @Valid CommentForm form, BindingResult bindingResult,
+                             Principal principal, @PathVariable String identifier, RedirectAttributes redirectAttributes)
+            throws MessagingException, UnsupportedEncodingException {
         User currentUser = userRepository.findByEmail(principal.getName());
 
         if(currentUser.getOrganization() == null)
             return "organization/select-organization";
+
+        if(bindingResult.hasErrors()) {
+            redirectAttributes.addFlashAttribute("commentError", COMMENT_ERROR);
+            return "redirect:/issues/{identifier}/view/" + issueKey;
+        }
 
         Issue issue = findIssueOrNotFound(currentUser, identifier, issueKey);
         Comment comment = new Comment();
@@ -57,9 +69,9 @@ public class CommentController {
 
     @PostMapping("/save")
     public String editComment(@RequestParam("id") Long id,
-                              @RequestParam("isEdited") boolean isEdited, @RequestParam("message") String message,
+                              @RequestParam("isEdited") boolean isEdited, @Valid CommentForm form, BindingResult bindingResult,
                               @PathVariable(value = "issueKey") String issueKey,
-                              @PathVariable String identifier, Principal principal) {
+                              @PathVariable String identifier, Principal principal, RedirectAttributes redirectAttributes) {
         User currentUser = userRepository.findByEmail(principal.getName());
 
         if(currentUser.getOrganization() == null)
@@ -68,11 +80,14 @@ public class CommentController {
         Issue issue = findIssueOrNotFound(currentUser, identifier, issueKey);
         Comment updatedComment = findOwnCommentOrNotFound(id, issue, currentUser);
 
+        if(bindingResult.hasErrors()) {
+            redirectAttributes.addFlashAttribute("commentError", COMMENT_ERROR);
+            return "redirect:/issues/{identifier}/view/" + issueKey;
+        }
+
         // sets Comment isEdited to true if comment has not yet been edited
         if(!isEdited) { updatedComment.setIsEdited(true); }
-
-        updatedComment.setMessage(message);
-
+        updatedComment.setMessage(form.message());
         commentRepository.save(updatedComment);
 
         return "redirect:/issues/{identifier}/view/" + issueKey;

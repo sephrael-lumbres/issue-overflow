@@ -1,5 +1,6 @@
 package com.sephrael.issueoverflow.controller;
 
+import com.sephrael.issueoverflow.controller.form.Passwords;
 import com.sephrael.issueoverflow.controller.form.ProfileForm;
 import com.sephrael.issueoverflow.entity.Organization;
 import com.sephrael.issueoverflow.entity.Project;
@@ -14,6 +15,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpServletResponse;
 import java.security.Principal;
 import java.util.Objects;
@@ -58,8 +61,8 @@ public class AccountController {
     }
 
     @PostMapping("/profile/{id}/save")
-    public String saveAccountProfileChanges(@PathVariable("id") long id, ProfileForm form, Principal principal,
-                                            RedirectAttributes redirectAttributes,
+    public String saveAccountProfileChanges(@PathVariable("id") long id, @Valid ProfileForm form, BindingResult bindingResult,
+                                            Principal principal, RedirectAttributes redirectAttributes,
                                             HttpServletRequest request, HttpServletResponse response) {
         User currentUser = userRepository.findByEmail(principal.getName());
 
@@ -68,6 +71,11 @@ public class AccountController {
 
         if(currentUser.getId() != id)
             throw OrganizationScope.notFound();
+
+        if(bindingResult.hasErrors()) {
+            redirectAttributes.addFlashAttribute("profileChangeError", "Please fill in every field with a valid email address.");
+            return "redirect:/account/profile/" + id;
+        }
 
         try {
             User userToBeUpdated = userRepository.findUserById(id);
@@ -129,6 +137,12 @@ public class AccountController {
 
         if(currentUser.getId() != id)
             throw OrganizationScope.notFound();
+
+        String passwordErrorMessage = Passwords.errorMessage(newPassword);
+        if(passwordErrorMessage != null) {
+            redirectAttributes.addFlashAttribute("error", passwordErrorMessage);
+            return "redirect:/account/security/" + id;
+        }
 
         User userToBeUpdated = userRepository.findUserById(id);
         BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
