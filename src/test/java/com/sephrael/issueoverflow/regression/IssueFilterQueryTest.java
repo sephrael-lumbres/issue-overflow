@@ -33,9 +33,9 @@ class IssueFilterQueryTest extends WebIntegrationTestBase {
         alice = createUser(organization, "Project Manager");
         bob = createUser(organization, "Developer");
         project = createProject(organization, alice);
-        openBugByAliceForBob = createIssue(project, alice, bob, "Bug", "Open", "High", 1);
-        closedTaskByAliceUnassigned = createIssue(project, alice, null, "Task", "Closed", "Low", 2);
-        openBugByBobForAlice = createIssue(project, bob, alice, "Bug", "Open", "Low", 3);
+        openBugByAliceForBob = createIssue(project, alice, bob, "Bug", "Open", "High");
+        closedTaskByAliceUnassigned = createIssue(project, alice, null, "Task", "Closed", "Low");
+        openBugByBobForAlice = createIssue(project, bob, alice, "Bug", "Open", "Low");
     }
 
     // Used by the issue filters when a specific assignee (or none) is chosen.

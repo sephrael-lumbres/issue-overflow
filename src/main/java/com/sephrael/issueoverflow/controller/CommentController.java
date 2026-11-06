@@ -117,9 +117,8 @@ public class CommentController {
         if(currentProject == null || !currentUser.getProjects().contains(currentProject))
             throw OrganizationScope.notFound();
 
-        Issue issue = issueRepository.findByIssueKeyAndOrganization(issueKey, currentUser.getOrganization());
-
-        if(issue == null || !Objects.equals(issue.getProject().getId(), currentProject.getId()))
+        Issue issue = issueRepository.findByIssueKeyAndProject(issueKey, currentProject);
+        if(issue == null)
             throw OrganizationScope.notFound();
 
         return issue;

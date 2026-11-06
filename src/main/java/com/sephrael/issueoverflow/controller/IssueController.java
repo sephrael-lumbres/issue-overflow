@@ -34,8 +34,6 @@ public class IssueController {
     @Autowired
     private IssueService issueService;
     @Autowired
-    private IssueKeySequenceRepository issueKeySequenceRepository;
-    @Autowired
     private UserRepository userRepository;
     @Autowired
     private UserService userService;
@@ -246,7 +244,7 @@ public class IssueController {
             return "organization/select-organization";
 
         Project currentProject = findProjectOrNotFound(identifier, currentOrganization);
-        Issue issue = findIssueOrNotFound(issueKey, currentProject, currentOrganization);
+        Issue issue = findIssueOrNotFound(issueKey, currentProject);
         model.addAttribute("newComment", new Comment());
         model.addAttribute("comments", issue.getComments());
         model.addAttribute("issue", issue);
@@ -270,7 +268,7 @@ public class IssueController {
             return "organization/select-organization";
 
         Project currentProject = findProjectOrNotFound(identifier, currentOrganization);
-        Issue currentIssue = findIssueOrNotFound(issueKey, currentProject, currentOrganization);
+        Issue currentIssue = findIssueOrNotFound(issueKey, currentProject);
 
         // if Current User did NOT Open the requested Issue AND is NOT a Project Manager AND is NOT an Admin, display 403 error
         if(!Objects.equals(currentIssue.getUser().getId(), currentUser.getId()) &&
@@ -297,7 +295,7 @@ public class IssueController {
             return "organization/select-organization";
 
         Project currentProject = findProjectOrNotFound(identifier, currentOrganization);
-        Issue currentIssue = findIssueOrNotFound(issueKey, currentProject, currentOrganization);
+        Issue currentIssue = findIssueOrNotFound(issueKey, currentProject);
 
         // if Current User did NOT Open the requested Issue AND is NOT a Project Manager AND is NOT an Admin, display 403 error
         if(!Objects.equals(currentIssue.getUser().getId(), currentUser.getId()) &&
@@ -307,12 +305,7 @@ public class IssueController {
 
         // deletes all the files associated with this issue, from the AWS S3 bucket
         awsFileService.deleteAllFilesByIssue(currentIssue);
-
         issueService.delete(currentIssue.getId());
-
-        if(currentProject.getIssues().isEmpty()) {
-            issueKeySequenceRepository.delete(issueKeySequenceRepository.findByProjectIdentifierAndProjectId(identifier, currentProject.getId()));
-        }
 
         if(isOrganizationList)
             return "redirect:/issues/all";
@@ -329,10 +322,10 @@ public class IssueController {
         return project;
     }
 
-    // The issue named in the URL, which must also belong to the URL's project.
-    private Issue findIssueOrNotFound(String issueKey, Project project, Organization organization) {
-        Issue issue = issueRepository.findByIssueKeyAndOrganization(issueKey, organization);
-        if(issue == null || !Objects.equals(issue.getProject().getId(), project.getId()))
+    // The issue named in the URL, within the URL's project (keys are unique per project, not per organization).
+    private Issue findIssueOrNotFound(String issueKey, Project project) {
+        Issue issue = issueRepository.findByIssueKeyAndProject(issueKey, project);
+        if(issue == null)
             throw OrganizationScope.notFound();
 
         return issue;

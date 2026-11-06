@@ -96,7 +96,7 @@ class PageRenderTest extends WebIntegrationTestBase {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/issues/" + project.getIdentifier() + "/view/" + expectedKey));
 
-        Issue createdIssue = issueRepository.findByIssueKeyAndOrganization(expectedKey, organization);
+        Issue createdIssue = issueRepository.findByIssueKeyAndProject(expectedKey, project);
         assertThat(createdIssue).isNotNull();
         assertThat(createdIssue.getTitle()).isEqualTo(title);
         assertThat(createdIssue.getUser().getId()).isEqualTo(projectManager.getId());

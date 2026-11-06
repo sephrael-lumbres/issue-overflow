@@ -2,7 +2,6 @@ package com.sephrael.issueoverflow.controller;
 
 import com.sephrael.issueoverflow.controller.form.ProjectForm;
 import com.sephrael.issueoverflow.entity.*;
-import com.sephrael.issueoverflow.repository.IssueKeySequenceRepository;
 import com.sephrael.issueoverflow.repository.IssueRepository;
 import com.sephrael.issueoverflow.repository.ProjectRepository;
 import com.sephrael.issueoverflow.repository.UserRepository;
@@ -20,7 +19,6 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.security.Principal;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Objects;
 
 @Controller
 @RequestMapping("/projects")
@@ -38,8 +36,6 @@ public class ProjectController {
     private IssueRepository issueRepository;
     @Autowired
     private IssueService issueService;
-    @Autowired
-    private IssueKeySequenceRepository issueKeySequenceRepository;
     @Autowired
     private AWSFileService awsFileService;
 
@@ -147,20 +143,6 @@ public class ProjectController {
         requestedProjectUpdate.setName(form.name());
         requestedProjectUpdate.setIdentifier(form.identifier());
         requestedProjectUpdate.setColor(form.color());
-
-        // if a Project's Identifier is requested to be changed, create a new Issue Key Sequence and delete the previous one
-        if(!Objects.equals(projectBeforeUpdate.getIdentifier(), requestedProjectUpdate.getIdentifier())) {
-            IssueKeySequence previousIssueKeySequence = issueKeySequenceRepository.findByProjectIdentifierAndProjectId(
-                    projectBeforeUpdate.getIdentifier(), projectBeforeUpdate.getId());
-
-            IssueKeySequence newIssueKeySequence = new IssueKeySequence();
-            newIssueKeySequence.setProjectId(requestedProjectUpdate.getId());
-            newIssueKeySequence.setProjectIdentifier(requestedProjectUpdate.getIdentifier());
-            newIssueKeySequence.setIssueKeyCounter(previousIssueKeySequence.getIssueKeyCounter());
-            issueKeySequenceRepository.save(newIssueKeySequence);
-
-            issueKeySequenceRepository.delete(previousIssueKeySequence);
-        }
 
         // fixes bug that when updating a Project removed all the Users in an updated Project except for the User that
         // performed the update

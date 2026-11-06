@@ -1,7 +1,6 @@
 package com.sephrael.issueoverflow.service;
 
 import com.sephrael.issueoverflow.entity.*;
-import com.sephrael.issueoverflow.repository.IssueKeySequenceRepository;
 import com.sephrael.issueoverflow.repository.IssueRepository;
 import com.sephrael.issueoverflow.repository.ProjectRepository;
 import com.sephrael.issueoverflow.repository.UserRepository;
@@ -33,7 +32,7 @@ public class IssueService {
     @Autowired
     private ProjectRepository projectRepository;
     @Autowired
-    private IssueKeySequenceRepository issueKeySequenceRepository;
+    private IssueKeys issueKeys;
     @Autowired
     private JavaMailSender mailSender;
 
@@ -277,34 +276,13 @@ public class IssueService {
         return filterField;
     }
 
-    // this sets the Issue Key
+    // Gives an issue its key when it has none (a new issue) or moves to another project. Numbers come from the project's
+    // counter (IssueKeys), which only goes up, so an issue that moves away doesn't free its number.
     public void setIssueKey(Issue issue, Project nextProject) {
         Project previousProject = issue.getProject();
-        String issueKey = "";
 
-        // if issue does not have an issue key or if the issue is being moved to a different project
-        if(issue.getIssueKey() == null || !Objects.equals(previousProject.getId(), nextProject.getId())) {
-            if(nextProject.getIssues().size() == 0) {
-                IssueKeySequence issueKeySequence = new IssueKeySequence();
-                issueKeySequence.setProjectId(nextProject.getId());
-                issueKeySequence.setProjectIdentifier(nextProject.getIdentifier());
-                issueKeySequence.setIssueKeyCounter(1);
-                issueKeySequenceRepository.save(issueKeySequence);
-                issueKey = nextProject.getIdentifier() + "-" + issueKeySequence.getIssueKeyCounter();
-            } else {
-                IssueKeySequence currentSequence = issueKeySequenceRepository.findByProjectIdentifierAndProjectId(nextProject.getIdentifier(), nextProject.getId());
-                currentSequence.setIssueKeyCounter(currentSequence.getIssueKeyCounter() + 1);
-
-                issueKey = nextProject.getIdentifier() + "-" + currentSequence.getIssueKeyCounter();
-            }
-
-            // if the previous project will no longer have any issues after switching its only issue to a different project
-            if(previousProject != null && previousProject != nextProject && previousProject.getIssues().size() <= 1) {
-                issueKeySequenceRepository.delete(issueKeySequenceRepository.findByProjectIdentifierAndProjectId(previousProject.getIdentifier(), previousProject.getId()));
-            }
-
-            issue.setIssueKey(issueKey);
-        }
+        if(issue.getIssueKey() == null || !Objects.equals(previousProject.getId(), nextProject.getId()))
+            issue.setIssueKey(issueKeys.nextKey(nextProject));
     }
 
     public String getFilteredIssues(String type, String status, String priority, String createdBy, String assignedTo, String identifier, Model model, Principal principal) {

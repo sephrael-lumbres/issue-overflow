@@ -57,7 +57,7 @@ class DeleteRoutesTest extends WebIntegrationTestBase {
     void postDeletesAnIssue() throws Exception {
         Fixture fixture = createFixture();
         // a second issue keeps the project non-empty, so its key sequence (which fixtures don't create) is left alone
-        createIssue(fixture.project, fixture.projectManager, null, "Task", "Open", "Low", 2);
+        createIssue(fixture.project, fixture.projectManager, null, "Task", "Open", "Low");
         MockHttpSession session = login(fixture.projectManager.getEmail());
 
         mockMvc.perform(post("/issues/" + fixture.project.getIdentifier() + "/delete/" + fixture.issue.getIssueKey() + "/false")
