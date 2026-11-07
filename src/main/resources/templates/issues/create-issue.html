@@ -224,6 +224,7 @@
                     </header>
                     <!-- Main page content-->
                     <div class="container-fluid px-4">
+                        <div th:text="${issueFormError}" th:if="${issueFormError}" id="popupAlerts" class="alert alert-danger alert-dismissible fade show text-center" role="alert"></div>
                         <form action="#" th:action="@{/issues/new}" th:object="${issue}" method="post"
                               enctype="multipart/form-data" class="row gx-4">
                             <!--  THIS ASSIGNS EACH ISSUE TO ITS CREATOR, THIS SHIT TOOK 30-40 HOURS TO FIGURE IT OUT-->

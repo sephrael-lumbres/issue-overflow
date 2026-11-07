@@ -247,6 +247,7 @@
                         <div th:text="${projectUpdateSuccess}" th:if="${projectUpdateSuccess}" id="popupAlerts" class="alert alert-success alert-dismissible fade show text-center mt-n1" role="alert"></div>
                         <div th:text="${idNotUniqueToOrganization}" th:if="${idNotUniqueToOrganization}" id="popupAlerts" class="alert alert-danger alert-dismissible fade show text-center mt-n1" role="alert"></div>
                         <div th:text="${projectNotFound}" th:if="${projectNotFound}" id="popupAlerts" class="alert alert-danger alert-dismissible fade show text-center mt-n1" role="alert"></div>
+                        <div th:text="${projectFormError}" th:if="${projectFormError}" id="popupAlerts" class="alert alert-danger alert-dismissible fade show text-center mt-n1" role="alert"></div>
 
                         <!-- ALERT MESSAGE IF THE CURRENT USER HAS NOTIFICATIONS ENABLED BUT EMAIL IS NOT VERIFIED -->
                         <div th:text="${verificationEmailSentSuccess}" th:if="${verificationEmailSentSuccess}" id="popupAlerts" class="alert alert-success alert-dismissible fade show text-center mt-n1" role="alert"></div>

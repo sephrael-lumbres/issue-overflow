@@ -68,7 +68,7 @@ public class AWSFileService {
     }
 
     public void uploadFile(MultipartFile multipartFile, User user, Issue issue, boolean isProfilePicture) {
-        String fileName = multipartFile.getOriginalFilename();
+        String fileName = UploadedFiles.storedName(multipartFile.getOriginalFilename());
 
         // a random key; the original file name is kept in the AWSFile record
         String fileKey = UUID.randomUUID().toString();

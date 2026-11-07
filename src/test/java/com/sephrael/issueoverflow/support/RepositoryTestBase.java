@@ -22,6 +22,11 @@ import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
  * Call flushAndClear() between arranging data and checking it: it writes the
  * pending SQL and empties the persistence context, so the next read and any
  * cascading delete see what is in the database, as they would in a new request.
+ * <p>
+ * An issue needs a project and an author, and a comment needs an issue and
+ * an author (NOT NULL columns). newIssue() and newComment() fill these with
+ * placeholders, which are saved the first time a test needs them. A test can
+ * set its own values before saving.
  */
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
@@ -29,6 +34,10 @@ public abstract class RepositoryTestBase extends PostgresTestBase {
 
     @Autowired
     protected TestEntityManager entityManager;
+
+    private User placeholderAuthor;
+    private Project placeholderProject;
+    private Issue placeholderIssue;
 
     protected void flushAndClear() {
         entityManager.flush();
@@ -46,24 +55,30 @@ public abstract class RepositoryTestBase extends PostgresTestBase {
         Project project = new Project();
         project.setName(name);
         project.setIdentifier(identifier);
+        project.setColor("primary");
         project.setOrganization(organization);
         return project;
     }
 
-    // An Open, High priority Bug with no project, author or organization.
-    protected static Issue newIssue(String title, String description) {
+    // An Open, High priority Bug in the placeholder project, by the placeholder author, with no organization.
+    protected Issue newIssue(String title, String description) {
         Issue issue = new Issue();
         issue.setTitle(title);
         issue.setDescription(description);
         issue.setType("Bug");
         issue.setPriority("High");
         issue.setStatus("Open");
+        issue.setProject(placeholderProject());
+        issue.setUser(placeholderAuthor());
         return issue;
     }
 
-    protected static Comment newComment(String message) {
+    // A comment on the placeholder issue, by the placeholder author.
+    protected Comment newComment(String message) {
         Comment comment = new Comment();
         comment.setMessage(message);
+        comment.setIssue(placeholderIssue());
+        comment.setUser(placeholderAuthor());
         return comment;
     }
 
@@ -80,5 +95,30 @@ public abstract class RepositoryTestBase extends PostgresTestBase {
         Role role = new Role();
         role.setName(name);
         return role;
+    }
+
+    private User placeholderAuthor() {
+        if(placeholderAuthor == null)
+            placeholderAuthor = entityManager.persist(newUser("placeholder-author@example.test", "Placeholder", "Author"));
+        return placeholderAuthor;
+    }
+
+    private Project placeholderProject() {
+        if(placeholderProject == null) {
+            Organization organization = entityManager.persist(newOrganization("Placeholder Organization", "PLACEHOLDER"));
+            placeholderProject = entityManager.persist(newProject(organization, "Placeholder Project", "PH"));
+        }
+        return placeholderProject;
+    }
+
+    private Issue placeholderIssue() {
+        if(placeholderIssue == null) {
+            Issue issue = new Issue();
+            issue.setTitle("Placeholder issue");
+            issue.setProject(placeholderProject());
+            issue.setUser(placeholderAuthor());
+            placeholderIssue = entityManager.persist(issue);
+        }
+        return placeholderIssue;
     }
 }

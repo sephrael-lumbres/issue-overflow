@@ -3,6 +3,7 @@ package com.sephrael.issueoverflow.support;
 import com.sephrael.issueoverflow.entity.*;
 import com.sephrael.issueoverflow.repository.*;
 import com.sephrael.issueoverflow.service.AWSFileService;
+import com.sephrael.issueoverflow.service.IssueKeys;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
@@ -90,6 +91,8 @@ public abstract class WebIntegrationTestBase {
     @Autowired
     protected AWSFileService awsFileService;
     @Autowired
+    private IssueKeys issueKeys;
+    @Autowired
     private PlatformTransactionManager transactionManager;
     @MockitoBean
     protected JavaMailSender mailSender;
@@ -158,9 +161,9 @@ public abstract class WebIntegrationTestBase {
         return projectRepository.save(project);
     }
 
-    // assignee may be null. The issue key is "<identifier>-<number>".
+    // assignee may be null. The key comes from the project's counter, as for an issue created through the form.
     protected Issue createIssue(Project project, User author, User assignee,
-                                String type, String status, String priority, int number) {
+                                String type, String status, String priority) {
         Issue issue = new Issue();
         issue.setTitle("Search returns stale results " + uniqueSuffix());
         issue.setDescription("Steps to reproduce: search twice for the same term.");
@@ -169,7 +172,7 @@ public abstract class WebIntegrationTestBase {
         issue.setPriority(priority);
         issue.setEstimatedHours(3);
         issue.setDueDate(LocalDate.now().plusDays(7));
-        issue.setIssueKey(project.getIdentifier() + "-" + number);
+        issue.setIssueKey(issueKeys.nextKey(project));
         issue.setProject(project);
         issue.setUser(author);
         issue.setOrganization(project.getOrganization());
@@ -191,7 +194,7 @@ public abstract class WebIntegrationTestBase {
         Organization organization = createOrganization();
         User projectManager = createUser(organization, "Project Manager");
         Project project = createProject(organization, projectManager);
-        Issue issue = createIssue(project, projectManager, projectManager, "Bug", "Open", "High", 1);
+        Issue issue = createIssue(project, projectManager, projectManager, "Bug", "Open", "High");
         return new Fixture(organization, projectManager, project, issue);
     }
 

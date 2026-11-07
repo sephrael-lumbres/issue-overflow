@@ -14,6 +14,7 @@ public class Comment {
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
 
+    @Column(columnDefinition = "TEXT")
     private String message;
 
     private boolean isEdited;
@@ -26,7 +27,7 @@ public class Comment {
     @JsonIgnore
     @ManyToOne
     @NotNull
-    @JoinColumn(updatable = false)
+    @JoinColumn(nullable = false, updatable = false)
     private User user;
 
     public User getUser() {
@@ -40,6 +41,7 @@ public class Comment {
     @JsonIgnore
     @ManyToOne
     @NotNull
+    @JoinColumn(nullable = false)
     private Issue issue;
 
     public Issue getIssue() {

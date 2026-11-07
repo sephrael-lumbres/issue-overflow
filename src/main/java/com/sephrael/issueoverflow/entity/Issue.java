@@ -92,7 +92,7 @@ public class Issue {
 
     @ManyToOne
     @NotNull
-    @JoinColumn(updatable = false)
+    @JoinColumn(nullable = false, updatable = false)
     @JsonIgnore
     @NotAudited
     private User user;
@@ -131,6 +131,7 @@ public class Issue {
 
     @ManyToOne
     @NotNull
+    @JoinColumn(nullable = false)
 //    @JsonIgnore
     private Project project;
 

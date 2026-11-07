@@ -8,11 +8,13 @@ import com.sephrael.issueoverflow.repository.OrganizationRepository;
 import com.sephrael.issueoverflow.repository.RoleRepository;
 import com.sephrael.issueoverflow.repository.UserRepository;
 import com.sephrael.issueoverflow.service.TokenGenerator;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -74,13 +76,18 @@ public class OrganizationController {
     }
 
     @PostMapping("/save")
-    public String createOrganization(OrganizationForm form, Principal principal,
-                                     HttpServletRequest request, HttpServletResponse response) {
+    public String createOrganization(@Valid OrganizationForm form, BindingResult bindingResult, Principal principal,
+                                     RedirectAttributes redirectAttributes, HttpServletRequest request, HttpServletResponse response) {
         User currentUser = userRepository.findByEmail(principal.getName());
 
         // a member of an organization must leave it before creating another
         if(currentUser.getOrganization() != null)
             return "redirect:/organization";
+
+        if(bindingResult.hasErrors()) {
+            redirectAttributes.addFlashAttribute("organizationError", "Please enter an organization name.");
+            return "redirect:/organization/new";
+        }
 
         Organization organization = new Organization();
         organization.setName(form.name());

@@ -2,27 +2,29 @@ package com.sephrael.issueoverflow.controller;
 
 import com.sephrael.issueoverflow.controller.form.ProjectForm;
 import com.sephrael.issueoverflow.entity.*;
-import com.sephrael.issueoverflow.repository.IssueKeySequenceRepository;
 import com.sephrael.issueoverflow.repository.IssueRepository;
 import com.sephrael.issueoverflow.repository.ProjectRepository;
 import com.sephrael.issueoverflow.repository.UserRepository;
 import com.sephrael.issueoverflow.service.AWSFileService;
 import com.sephrael.issueoverflow.service.IssueService;
 import com.sephrael.issueoverflow.service.ProjectService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.security.Principal;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Objects;
 
 @Controller
 @RequestMapping("/projects")
 public class ProjectController {
+
+    private static final String PROJECT_FORM_ERROR = "Please fill in the project's name, ID and color.";
 
     @Autowired
     private ProjectRepository projectRepository;
@@ -34,8 +36,6 @@ public class ProjectController {
     private IssueRepository issueRepository;
     @Autowired
     private IssueService issueService;
-    @Autowired
-    private IssueKeySequenceRepository issueKeySequenceRepository;
     @Autowired
     private AWSFileService awsFileService;
 
@@ -90,12 +90,18 @@ public class ProjectController {
     }
 
     @PostMapping("/new")
-    public String createProject(ProjectForm form, Principal principal, Model model, RedirectAttributes redirectAttributes) {
+    public String createProject(@Valid ProjectForm form, BindingResult bindingResult, Principal principal, Model model,
+                                RedirectAttributes redirectAttributes) {
         User currentUser = userRepository.findByEmail(principal.getName());
         Organization currentUserOrganization = currentUser.getOrganization();
 
         if(currentUserOrganization == null)
             return "organization/select-organization";
+
+        if(bindingResult.hasErrors()) {
+            redirectAttributes.addFlashAttribute("projectFormError", PROJECT_FORM_ERROR);
+            return "redirect:/projects/all";
+        }
 
         model.addAttribute("project", new Project());
 
@@ -111,8 +117,8 @@ public class ProjectController {
     }
 
     @PostMapping("/save")
-    public String editProject(@RequestParam(value = "id") Long id, ProjectForm form, Principal principal,
-                              RedirectAttributes redirectAttributes) {
+    public String editProject(@RequestParam(value = "id") Long id, @Valid ProjectForm form, BindingResult bindingResult,
+                              Principal principal, RedirectAttributes redirectAttributes) {
         User currentUser = userRepository.findByEmail(principal.getName());
         Organization currentOrganization = currentUser.getOrganization();
 
@@ -125,6 +131,11 @@ public class ProjectController {
         if(projectBeforeUpdate == null)
             throw OrganizationScope.notFound();
 
+        if(bindingResult.hasErrors()) {
+            redirectAttributes.addFlashAttribute("projectFormError", PROJECT_FORM_ERROR);
+            return "redirect:/projects/all";
+        }
+
         // the form sets only the name, identifier and color; the project stays in the caller's organization
         Project requestedProjectUpdate = new Project();
         requestedProjectUpdate.setId(projectBeforeUpdate.getId());
@@ -132,20 +143,6 @@ public class ProjectController {
         requestedProjectUpdate.setName(form.name());
         requestedProjectUpdate.setIdentifier(form.identifier());
         requestedProjectUpdate.setColor(form.color());
-
-        // if a Project's Identifier is requested to be changed, create a new Issue Key Sequence and delete the previous one
-        if(!Objects.equals(projectBeforeUpdate.getIdentifier(), requestedProjectUpdate.getIdentifier())) {
-            IssueKeySequence previousIssueKeySequence = issueKeySequenceRepository.findByProjectIdentifierAndProjectId(
-                    projectBeforeUpdate.getIdentifier(), projectBeforeUpdate.getId());
-
-            IssueKeySequence newIssueKeySequence = new IssueKeySequence();
-            newIssueKeySequence.setProjectId(requestedProjectUpdate.getId());
-            newIssueKeySequence.setProjectIdentifier(requestedProjectUpdate.getIdentifier());
-            newIssueKeySequence.setIssueKeyCounter(previousIssueKeySequence.getIssueKeyCounter());
-            issueKeySequenceRepository.save(newIssueKeySequence);
-
-            issueKeySequenceRepository.delete(previousIssueKeySequence);
-        }
 
         // fixes bug that when updating a Project removed all the Users in an updated Project except for the User that
         // performed the update
