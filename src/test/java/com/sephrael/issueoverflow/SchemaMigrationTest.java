@@ -31,12 +31,26 @@ class SchemaMigrationTest extends RepositoryTestBase {
         assertThat(flyway.info().applied())
                 .extracting(info -> info.getVersion().getVersion(), MigrationInfo::getState)
                 .containsExactly(tuple("1", MigrationState.SUCCESS), tuple("2", MigrationState.SUCCESS), tuple("3", MigrationState.SUCCESS),
-                        tuple("4", MigrationState.SUCCESS), tuple("5", MigrationState.SUCCESS));
+                        tuple("4", MigrationState.SUCCESS), tuple("5", MigrationState.SUCCESS), tuple("6", MigrationState.SUCCESS));
 
         String sql = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'";
         List<String> tables = jdbcTemplate.queryForList(sql, String.class);
 
         assertThat(tables).contains("revinfo", "issue_aud", "project_aud", "users_aud", "flyway_schema_history");
+    }
+
+    // The columns the app always fills are NOT NULL (V1 left them nullable).
+    @Test
+    void requiredColumnsAreNotNull() {
+        String sql = "SELECT table_name || '.' || column_name FROM information_schema.columns "
+                + "WHERE table_schema = 'public' AND is_nullable = 'NO' AND table_name IN ('users', 'project', 'issue', 'comment')";
+        List<String> notNullColumns = jdbcTemplate.queryForList(sql, String.class);
+
+        assertThat(notNullColumns).contains(
+                "users.email", "users.password", "users.first_name", "users.last_name",
+                "project.name", "project.identifier", "project.color",
+                "issue.user_id", "issue.project_id",
+                "comment.user_id", "comment.issue_id");
     }
 
     @Test

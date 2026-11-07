@@ -27,7 +27,7 @@ public class Comment {
     @JsonIgnore
     @ManyToOne
     @NotNull
-    @JoinColumn(updatable = false)
+    @JoinColumn(nullable = false, updatable = false)
     private User user;
 
     public User getUser() {
@@ -41,6 +41,7 @@ public class Comment {
     @JsonIgnore
     @ManyToOne
     @NotNull
+    @JoinColumn(nullable = false)
     private Issue issue;
 
     public Issue getIssue() {

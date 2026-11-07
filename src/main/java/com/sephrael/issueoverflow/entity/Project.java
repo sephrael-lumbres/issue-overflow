@@ -20,17 +20,19 @@ public class Project {
     private Long id;
 
     @NotNull
+    @Column(nullable = false)
     private String name;
 
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDate dateCreated;
 
-    @Column
+    @Column(nullable = false)
     @NotNull
     private String identifier;
 
     @NotNull
+    @Column(nullable = false)
     private String color;
 
     @ManyToMany

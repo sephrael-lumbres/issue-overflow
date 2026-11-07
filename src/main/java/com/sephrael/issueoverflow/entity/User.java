@@ -20,24 +20,24 @@ public class User {
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
 
-    @Column(unique = true)
+    @Column(unique = true, nullable = false)
     @NotNull
     @NotEmpty
     private String email;
 
-    @Column
+    @Column(nullable = false)
     @JsonIgnore
     @NotNull
     @NotEmpty
     @NotAudited
     private String password;
 
-    @Column
+    @Column(nullable = false)
     @NotNull
     @NotEmpty
     private String firstName;
 
-    @Column
+    @Column(nullable = false)
     @NotNull
     @NotEmpty
     private String lastName;
