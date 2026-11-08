@@ -1,6 +1,7 @@
 package com.sephrael.issueoverflow.controller;
 
 import com.sephrael.issueoverflow.controller.form.IssueForm;
+import com.sephrael.issueoverflow.controller.form.IssueStatusForm;
 import com.sephrael.issueoverflow.entity.*;
 import com.sephrael.issueoverflow.repository.*;
 import com.sephrael.issueoverflow.service.AWSFileService;
@@ -8,6 +9,7 @@ import com.sephrael.issueoverflow.service.IssueService;
 import com.sephrael.issueoverflow.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -15,6 +17,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import jakarta.mail.MessagingException;
@@ -232,6 +235,36 @@ public class IssueController {
         userService.sendEmailNotification(previousIssue, null, false, false);
 
         return ("redirect:/issues/" + previousIssue.getProject().getIdentifier() + "/view/" + previousIssue.getIssueKey());
+    }
+
+    // The Mark as Resolved and Mark as Closed buttons. Only the status and who changed it are written; the edit form
+    // (/issues/update) sends every field, and posting it from these buttons cleared the estimate and the due date.
+    @PostMapping("/{identifier}/view/{issueKey}/status")
+    public String changeIssueStatus(@PathVariable("identifier") String identifier, @PathVariable("issueKey") String issueKey,
+                                    @Valid IssueStatusForm form, BindingResult bindingResult, Principal principal,
+                                    Authentication authentication) throws MessagingException, UnsupportedEncodingException {
+        User currentUser = userRepository.findByEmail(principal.getName());
+        if(currentUser.getOrganization() == null)
+            return "organization/select-organization";
+
+        Project currentProject = findProjectOrNotFound(identifier, currentUser);
+        Issue issue = findIssueOrNotFound(issueKey, currentProject);
+
+        if(bindingResult.hasErrors())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+
+        // the page offers Mark as Closed to Project Managers and Admins only
+        if("Closed".equals(form.status()) && authentication.getAuthorities().stream()
+                .noneMatch(a -> a.getAuthority().equals("Project Manager") || a.getAuthority().equals("Admin")))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+
+        issue.setStatus(form.status());
+        issue.setUpdatedBy(currentUser);
+        issueService.save(issue);
+
+        userService.sendEmailNotification(issue, null, false, false);
+
+        return "redirect:/issues/" + identifier + "/view/" + issueKey;
     }
 
     @RequestMapping("/{identifier}/view/{issueKey}")

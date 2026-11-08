@@ -11,12 +11,8 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -253,38 +249,6 @@ class FormBindingTest extends WebIntegrationTestBase {
         assertThat(reloadedIssue.getTitle()).isEqualTo("Updated title");
         assertThat(reloadedIssue.getStatus()).isEqualTo("Resolved");
         assertThat(reloadedIssue.getAssignedTo()).isNull();
-    }
-
-    // The status buttons post the form the issue page renders, including the assignee as a hidden input.
-    // Its value is the user's id (Spring Data's entity-to-id converter formats it), which IssueForm reads as a string.
-    @Test
-    void statusButtonsKeepTheAssignee() throws Exception {
-        Fixture fixture = createFixture();
-        MockHttpSession session = login(fixture.projectManager.getEmail());
-        String issuePath = "/issues/" + fixture.project.getIdentifier() + "/view/" + fixture.issue.getIssueKey();
-
-        String page = mockMvc.perform(get(issuePath).session(session))
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
-        Matcher input = Pattern.compile("<input[^>]*id=\"issueAssignedTo\"[^>]*>").matcher(page);
-        assertThat(input.find()).as("hidden assignee input on the issue page").isTrue();
-        Matcher value = Pattern.compile("value=\"([^\"]*)\"").matcher(input.group());
-        assertThat(value.find()).as("value of the hidden assignee input").isTrue();
-        assertThat(value.group(1)).isEqualTo(fixture.projectManager.getId().toString());
-
-        mockMvc.perform(post("/issues/update").session(session).with(csrf())
-                        .param("id", fixture.issue.getId().toString())
-                        .param("title", fixture.issue.getTitle())
-                        .param("type", "Bug")
-                        .param("priority", "High")
-                        .param("status", "Resolved")
-                        .param("project", fixture.project.getId().toString())
-                        .param("assignedTo", value.group(1)))
-                .andExpect(status().is3xxRedirection());
-
-        Issue reloadedIssue = issueRepository.findIssueById(fixture.issue.getId());
-        assertThat(reloadedIssue.getStatus()).isEqualTo("Resolved");
-        assertThat(reloadedIssue.getAssignedTo().getId()).isEqualTo(fixture.projectManager.getId());
     }
 
     @Test

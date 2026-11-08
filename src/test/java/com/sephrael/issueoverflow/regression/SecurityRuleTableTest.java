@@ -87,6 +87,7 @@ class SecurityRuleTableTest extends WebIntegrationTestBase {
                 row("/issues/PRJ/edit/PRJ-1",                             N, N, Y, Y, Y),
                 row("/issues/PRJ/delete/PRJ-1/false",                     N, N, Y, Y, Y),
                 row("/storage/PRJ/PRJ-1/delete/some-key",                 N, N, Y, Y, Y),
+                row("/issues/PRJ/view/PRJ-1/status",                      N, N, Y, Y, Y),
 
                 // issue page and comments: every role
                 row("/issues/PRJ/view/PRJ-1",                             N, Y, Y, Y, Y),

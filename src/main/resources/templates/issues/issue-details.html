@@ -546,12 +546,12 @@
                                     <i class="fas fa-paperclip me-2"></i>
                                     Attach File(s)
                                 </button>
-                                <button onclick="markIssueAsResolved()" class="btn btn-light btn mt-n4" type="submit" form="updateIssue"
+                                <button class="btn btn-light btn mt-n4" type="submit" form="markResolved"
                                         sec:authorize="hasAnyAuthority('Project Manager', 'Admin', 'Developer')">
                                     <i class="fas fa-check-circle me-2"></i>
                                     Mark as Resolved
                                 </button>
-                                <button onclick="markIssueAsClosed()" class="btn btn-light btn mt-n4" type="submit" form="updateIssue"
+                                <button class="btn btn-light btn mt-n4" type="submit" form="markClosed"
                                         sec:authorize="hasAnyAuthority('Project Manager', 'Admin')">
                                     <i class="me-2" data-feather="x-circle"></i>
                                     Mark as Closed
@@ -587,25 +587,14 @@
                                     </div>
                                 </div>
 
-                                <!-- THIS ALLOWS FOR CHANGES OF THE ISSUE STATUS TO: RESOLVED OR CLOSED -->
-                                <form action="#" th:action="@{/issues/update}" th:object="${issue}" id="updateIssue" method="post">
-                                    <span sec:authorize="hasAnyAuthority('Project Manager', 'Admin', 'Developer')" hidden>
-                                        <label for="issueId"><input th:field="*{id}" id="issueId" form="updateIssue" readonly/></label>
-                                        <label for="issueKey"><input th:field="*{issueKey}" id="issueKey" type="text" readonly></label>
-                                        <label for="issueTitle"><input th:field="*{title}" id="issueTitle" type="text" readonly/></label>
-                                        <label for="issueDescription"><input th:field="*{description}" id="issueDescription" type="text" readonly/></label>
-                                        <label for="issueAssignedTo"><input th:field="*{assignedTo}" id="issueAssignedTo" type="text" readonly/></label>
-                                        <label for="issueType"><input th:field="*{type}" id="issueType" type="text" readonly/></label>
-                                        <label for="issuePriority"><input th:field="*{priority}" id="issuePriority" type="text" readonly/></label>
-
-                                        <label for="markIssueAsResolvedOrClosed">
-                                            <select th:field="*{status}" id="markIssueAsResolvedOrClosed">
-                                                <option value="Resolved">Resolved</option>
-                                                <option value="Closed">Closed</option>
-                                            </select>
-                                        </label>
-                                        <label for="issueProject"><input th:value="${issue.project.id}" id="issueProject" name="project" form="updateIssue" readonly/></label>
-                                    </span>
+                                <!--/* Mark as Resolved and Mark as Closed button: each form changes only the status */-->
+                                <form th:action="@{'/issues/' + ${currentProject.identifier} + '/view/' + ${issue.issueKey} + '/status'}" id="markResolved" method="post"
+                                      sec:authorize="hasAnyAuthority('Project Manager', 'Admin', 'Developer')">
+                                    <input type="hidden" name="status" value="Resolved"/>
+                                </form>
+                                <form th:action="@{'/issues/' + ${currentProject.identifier} + '/view/' + ${issue.issueKey} + '/status'}" id="markClosed" method="post"
+                                      sec:authorize="hasAnyAuthority('Project Manager', 'Admin')">
+                                    <input type="hidden" name="status" value="Closed"/>
                                 </form>
                             </div>
                         </div>
@@ -723,16 +712,6 @@
                 if(isEdited === "true") {
                     target3.lastChild.appendChild(editedSpan);
                 }
-            }
-
-            function markIssueAsResolved() {
-                let markIssueOptions = document.getElementById('markIssueAsResolvedOrClosed');
-                markIssueOptions.selectedIndex = 0;
-            }
-
-            function markIssueAsClosed() {
-                let markIssueOptions = document.getElementById('markIssueAsResolvedOrClosed');
-                markIssueOptions.selectedIndex = 1;
             }
 
             // makes all images in this page have a max width of 100%
