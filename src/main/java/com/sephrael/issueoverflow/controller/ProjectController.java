@@ -63,7 +63,8 @@ public class ProjectController {
 
         Project currentProject = projectRepository.findByIdentifierAndOrganization(identifier, currentOrganization);
 
-        if(currentProject == null)
+        // a project the caller isn't a member of looks the same as one that doesn't exist
+        if(currentProject == null || !OrganizationScope.isMember(currentUser, currentProject))
             throw OrganizationScope.notFound();
 
         List<Issue> sortedIssues = issueService.getIssuesSortedByRecentActivity(

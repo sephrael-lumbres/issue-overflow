@@ -26,6 +26,8 @@ class StaleSessionTest extends WebIntegrationTestBase {
     void loweringARoleLogsOutThatUsersSession() throws Exception {
         Fixture fixture = createFixture();
         User developer = createUser(fixture.organization, "Developer");
+        fixture.project.addUser(developer);
+        projectRepository.save(fixture.project);
         MockHttpSession developerSession = login(developer.getEmail());
         MockHttpSession managerSession = login(fixture.projectManager.getEmail());
         String newIssuePage = "/issues/" + fixture.project.getIdentifier() + "/new";

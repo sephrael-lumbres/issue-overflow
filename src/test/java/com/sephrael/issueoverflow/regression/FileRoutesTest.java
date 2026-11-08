@@ -43,11 +43,13 @@ class FileRoutesTest extends WebIntegrationTestBase {
     }
 
     @Test
-    void attachmentRedirectsToAPresignedDownloadWithinTheOrganization() throws Exception {
+    void attachmentRedirectsToAPresignedDownloadWithinTheProject() throws Exception {
         Fixture fixture = createFixture();
         byte[] content = "Steps to reproduce: open the dashboard twice.".getBytes(StandardCharsets.UTF_8);
         AWSFile awsFile = uploadAttachment(fixture, "steps.txt", "text/plain", content);
         User developer = createUser(fixture.organization, "Developer");
+        fixture.project.addUser(developer);
+        projectRepository.save(fixture.project);
         MockHttpSession session = login(developer.getEmail());
 
         MvcResult result = mockMvc.perform(get("/storage/files/" + awsFile.getFileKey()).session(session))

@@ -48,12 +48,14 @@ public class CommentController {
         if(currentUser.getOrganization() == null)
             return "organization/select-organization";
 
+        // the issue is looked up first, so a non-member gets a 404 whatever the form holds
+        Issue issue = findIssueOrNotFound(currentUser, identifier, issueKey);
+
         if(bindingResult.hasErrors()) {
             redirectAttributes.addFlashAttribute("commentError", COMMENT_ERROR);
             return "redirect:/issues/{identifier}/view/" + issueKey;
         }
 
-        Issue issue = findIssueOrNotFound(currentUser, identifier, issueKey);
         Comment comment = new Comment();
         comment.setMessage(form.message());
         currentUser.addToComment(comment);
@@ -114,7 +116,7 @@ public class CommentController {
         Project currentProject = projectRepository.findByIdentifierAndOrganization(identifier, currentUser.getOrganization());
 
         // checks if the Current User is involved with the requested Project
-        if(currentProject == null || !currentUser.getProjects().contains(currentProject))
+        if(currentProject == null || !OrganizationScope.isMember(currentUser, currentProject))
             throw OrganizationScope.notFound();
 
         Issue issue = issueRepository.findByIssueKeyAndProject(issueKey, currentProject);

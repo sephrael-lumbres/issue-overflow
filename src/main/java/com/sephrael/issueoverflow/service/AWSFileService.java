@@ -120,7 +120,7 @@ public class AWSFileService {
     }
 
     // Profile pictures are visible to their owner and to members of the owner's organization.
-    // Attachments are visible to members of the issue's organization.
+    // Attachments are visible to members of the issue's project (in the issue's organization).
     public boolean canView(User viewer, AWSFile awsFile) {
         Organization viewerOrganization = viewer.getOrganization();
 
@@ -136,7 +136,8 @@ public class AWSFileService {
 
         Issue issue = awsFile.getIssue();
         return viewerOrganization != null && issue != null && issue.getOrganization() != null
-                && Objects.equals(issue.getOrganization().getId(), viewerOrganization.getId());
+                && Objects.equals(issue.getOrganization().getId(), viewerOrganization.getId()) && viewer.getProjects() != null
+                && viewer.getProjects().stream().anyMatch(project -> Objects.equals(project.getId(), issue.getProject().getId()));
     }
 
     // A short-lived GET URL for the object, signed with the app's credentials.
