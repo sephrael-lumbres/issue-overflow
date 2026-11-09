@@ -115,6 +115,8 @@ class PageRenderTest extends WebIntegrationTestBase {
     void roleRestrictedControlsShowForProjectManagerOnly() throws Exception {
         Fixture fixture = createFixture();
         User guest = createUser(fixture.organization, "Guest");
+        fixture.project.addUser(guest);
+        projectRepository.save(fixture.project);
         String issuePath = "/issues/" + fixture.project.getIdentifier() + "/view/" + fixture.issue.getIssueKey();
         String editLink = "/users/edit/" + guest.getId();
 
@@ -163,9 +165,11 @@ class PageRenderTest extends WebIntegrationTestBase {
     }
 
     @Test
-    void guestCanViewAnIssueInTheirOrganization() throws Exception {
+    void guestCanViewAnIssueOfTheirProject() throws Exception {
         Fixture fixture = createFixture();
         User guest = createUser(fixture.organization, "Guest");
+        fixture.project.addUser(guest);
+        projectRepository.save(fixture.project);
         MockHttpSession session = login(guest.getEmail());
 
         mockMvc.perform(get("/issues/" + fixture.project.getIdentifier() + "/view/" + fixture.issue.getIssueKey()).session(session))

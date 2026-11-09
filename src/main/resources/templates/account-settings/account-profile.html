@@ -311,7 +311,7 @@
                                         <!-- Profile picture help block-->
                                         <div class="small font-italic text-muted mb-4">JPG or PNG no larger than 5 MB</div>
 
-                                        <form th:action="@{'/storage/upload/' + ${user.id} + '/true'}"
+                                        <form th:action="@{'/storage/upload/' + ${user.id}}"
                                               method="post" enctype="multipart/form-data" action="#">
                                             <label for="files" class="form-label mb-4">
                                                 <input th:name="file" onchange="validateFileSize()" class="form-control" type="file" id="files" accept="image/png, image/jpeg">

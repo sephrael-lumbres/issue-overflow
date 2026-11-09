@@ -22,6 +22,7 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -53,18 +54,27 @@ public class AWSFileService {
         this.awsFileRepository = awsFileRepository;
     }
 
-    public void checkUserProfilePicture(User user, MultipartFile multipartFile, boolean isProfilePicture) {
+    public void checkUserProfilePicture(User user, MultipartFile multipartFile) {
         AWSFile awsFile = awsFileRepository.findByUserAndIsProfilePictureTrue(user);
 
-        if(user.hasProfilePicture() && isProfilePicture) {
+        if(user.hasProfilePicture()) {
             deleteObject(awsFile.getFileKey());
         }
-        if(!user.hasProfilePicture() && isProfilePicture) {
+        if(!user.hasProfilePicture()) {
             user.setHasProfilePicture(true);
             userRepository.save(user);
         }
 
-        uploadFile(multipartFile, user, null, isProfilePicture);
+        uploadFile(multipartFile, user, null, true);
+    }
+
+    // Whether the file is a PNG, JPEG, GIF or WebP image, judged by its first 12 bytes (enough for every signature).
+    public boolean isImage(MultipartFile multipartFile) {
+        try (InputStream inputStream = multipartFile.getInputStream()) {
+            return UploadedFiles.imageType(inputStream.readNBytes(12)) != null;
+        } catch (IOException ioException) {
+            return false;
+        }
     }
 
     public void uploadFile(MultipartFile multipartFile, User user, Issue issue, boolean isProfilePicture) {
@@ -72,8 +82,6 @@ public class AWSFileService {
 
         // a random key; the original file name is kept in the AWSFile record
         String fileKey = UUID.randomUUID().toString();
-
-        String contentType = multipartFile.getContentType();
         long fileSize = multipartFile.getSize();
 
         // Uploads are capped at 5 MB, so the whole file is held in memory. A byte
@@ -85,6 +93,8 @@ public class AWSFileService {
             logger.error("IOException: {}", ioException.getMessage());
             return;
         }
+
+        String contentType = UploadedFiles.storedContentType(multipartFile.getContentType(), content);
 
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(bucketName)
@@ -120,7 +130,7 @@ public class AWSFileService {
     }
 
     // Profile pictures are visible to their owner and to members of the owner's organization.
-    // Attachments are visible to members of the issue's organization.
+    // Attachments are visible to members of the issue's project (in the issue's organization).
     public boolean canView(User viewer, AWSFile awsFile) {
         Organization viewerOrganization = viewer.getOrganization();
 
@@ -136,7 +146,8 @@ public class AWSFileService {
 
         Issue issue = awsFile.getIssue();
         return viewerOrganization != null && issue != null && issue.getOrganization() != null
-                && Objects.equals(issue.getOrganization().getId(), viewerOrganization.getId());
+                && Objects.equals(issue.getOrganization().getId(), viewerOrganization.getId()) && viewer.getProjects() != null
+                && viewer.getProjects().stream().anyMatch(project -> Objects.equals(project.getId(), issue.getProject().getId()));
     }
 
     // A short-lived GET URL for the object, signed with the app's credentials.

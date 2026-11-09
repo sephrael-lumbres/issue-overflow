@@ -1,6 +1,7 @@
 package com.sephrael.issueoverflow.controller;
 
 import com.sephrael.issueoverflow.controller.form.IssueForm;
+import com.sephrael.issueoverflow.controller.form.IssueStatusForm;
 import com.sephrael.issueoverflow.entity.*;
 import com.sephrael.issueoverflow.repository.*;
 import com.sephrael.issueoverflow.service.AWSFileService;
@@ -8,6 +9,7 @@ import com.sephrael.issueoverflow.service.IssueService;
 import com.sephrael.issueoverflow.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -15,6 +17,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import jakarta.mail.MessagingException;
@@ -88,7 +91,7 @@ public class IssueController {
         if(currentOrganization == null)
             return "organization/select-organization";
 
-        Project currentProject = findProjectOrNotFound(identifier, currentOrganization);
+        Project currentProject = findProjectOrNotFound(identifier, currentUser);
 
         model.addAttribute("issues", currentProject.getIssues());
         model.addAttribute("currentUser", currentUser);
@@ -107,14 +110,14 @@ public class IssueController {
             @RequestParam(value = "assignedTo", required = false) String assignedTo,
             @PathVariable("identifier") String identifier, Model model, Principal principal) {
 
-        Project currentProject = projectRepository.findByIdentifierAndOrganization(identifier,
-                userRepository.findByEmail(principal.getName()).getOrganization());
+        User currentUser = userRepository.findByEmail(principal.getName());
+        Project currentProject = projectRepository.findByIdentifierAndOrganization(identifier, currentUser.getOrganization());
         String URL = issueService.getFilteredIssues(type, status, priority, createdBy, assignedTo, identifier, model, principal);
 
         // if Current User does not belong to any Organization, redirect them to the 'Select Organization' page
         if(URL != null) return URL;
 
-        if(currentProject == null)
+        if(currentProject == null || !OrganizationScope.isMember(currentUser, currentProject))
             throw OrganizationScope.notFound();
 
         model.addAttribute("currentProject", currentProject);
@@ -133,7 +136,7 @@ public class IssueController {
         Issue issue = new Issue();
         model.addAttribute("issue", issue);
         model.addAttribute("currentUser", currentUser);
-        model.addAttribute("currentProject", findProjectOrNotFound(identifier, currentOrganization));
+        model.addAttribute("currentProject", findProjectOrNotFound(identifier, currentUser));
         model.addAttribute("currentUserProjects", currentUser.getProjects());
 
         // OLD CODE: this was previously used to CONNECT an 'Issue' to the 'User' that created the 'Issue'
@@ -153,14 +156,14 @@ public class IssueController {
             return "organization/select-organization";
 
         if(bindingResult.hasErrors()) {
-            Project project = projectInOrganization(form.project(), currentOrganization);
+            Project project = projectOrNotFound(form.project(), currentUser);
             redirectAttributes.addFlashAttribute("issueFormError", ISSUE_FORM_ERROR);
             return "redirect:/issues/" + project.getIdentifier() + "/new";
         }
 
         Issue issue = new Issue();
         copyFormFields(form, issue);
-        issue.setProject(projectInOrganization(form.project(), currentOrganization));
+        issue.setProject(projectOrNotFound(form.project(), currentUser));
         issue.setAssignedTo(assigneeInOrganization(form.assignedTo(), currentOrganization));
 
         // sets the Issue Key
@@ -197,10 +200,10 @@ public class IssueController {
         if(currentOrganization == null)
             return "organization/select-organization";
 
-        // another organization's issue looks the same as one that doesn't exist
+        // another organization's issue, and one in a project the caller isn't a member of, look the same as one that doesn't exist
         Issue previousIssue = issueRepository.findByIdAndOrganization(id, currentOrganization);
 
-        if(previousIssue == null)
+        if(previousIssue == null || !OrganizationScope.isMember(currentUser, previousIssue.getProject()))
             throw OrganizationScope.notFound();
 
         // the attach-file form sends only the id and the files, so the other fields are checked only for the edit form
@@ -210,7 +213,7 @@ public class IssueController {
         }
 
         if(!isAttachFileForm) {
-            Project nextProject = projectInOrganization(form.project(), currentOrganization);
+            Project nextProject = projectOrNotFound(form.project(), currentUser);
             User nextAssignee = assigneeInOrganization(form.assignedTo(), currentOrganization);
 
             previousIssue.setUpdatedBy(currentUser);
@@ -234,6 +237,36 @@ public class IssueController {
         return ("redirect:/issues/" + previousIssue.getProject().getIdentifier() + "/view/" + previousIssue.getIssueKey());
     }
 
+    // The Mark as Resolved and Mark as Closed buttons. Only the status and who changed it are written; the edit form
+    // (/issues/update) sends every field, and posting it from these buttons cleared the estimate and the due date.
+    @PostMapping("/{identifier}/view/{issueKey}/status")
+    public String changeIssueStatus(@PathVariable("identifier") String identifier, @PathVariable("issueKey") String issueKey,
+                                    @Valid IssueStatusForm form, BindingResult bindingResult, Principal principal,
+                                    Authentication authentication) throws MessagingException, UnsupportedEncodingException {
+        User currentUser = userRepository.findByEmail(principal.getName());
+        if(currentUser.getOrganization() == null)
+            return "organization/select-organization";
+
+        Project currentProject = findProjectOrNotFound(identifier, currentUser);
+        Issue issue = findIssueOrNotFound(issueKey, currentProject);
+
+        if(bindingResult.hasErrors())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+
+        // the page offers Mark as Closed to Project Managers and Admins only
+        if("Closed".equals(form.status()) && authentication.getAuthorities().stream()
+                .noneMatch(a -> a.getAuthority().equals("Project Manager") || a.getAuthority().equals("Admin")))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+
+        issue.setStatus(form.status());
+        issue.setUpdatedBy(currentUser);
+        issueService.save(issue);
+
+        userService.sendEmailNotification(issue, null, false, false);
+
+        return "redirect:/issues/" + identifier + "/view/" + issueKey;
+    }
+
     @RequestMapping("/{identifier}/view/{issueKey}")
     public String showViewIssuePage(@PathVariable("issueKey") String issueKey, Model model,
                                     @PathVariable(name = "identifier") String identifier, Principal principal) {
@@ -243,7 +276,7 @@ public class IssueController {
         if(currentOrganization == null)
             return "organization/select-organization";
 
-        Project currentProject = findProjectOrNotFound(identifier, currentOrganization);
+        Project currentProject = findProjectOrNotFound(identifier, currentUser);
         Issue issue = findIssueOrNotFound(issueKey, currentProject);
         model.addAttribute("newComment", new Comment());
         model.addAttribute("comments", issue.getComments());
@@ -267,7 +300,7 @@ public class IssueController {
         if(currentOrganization == null)
             return "organization/select-organization";
 
-        Project currentProject = findProjectOrNotFound(identifier, currentOrganization);
+        Project currentProject = findProjectOrNotFound(identifier, currentUser);
         Issue currentIssue = findIssueOrNotFound(issueKey, currentProject);
 
         // if Current User did NOT Open the requested Issue AND is NOT a Project Manager AND is NOT an Admin, display 403 error
@@ -294,7 +327,7 @@ public class IssueController {
         if(currentUser.getOrganization() == null)
             return "organization/select-organization";
 
-        Project currentProject = findProjectOrNotFound(identifier, currentOrganization);
+        Project currentProject = findProjectOrNotFound(identifier, currentUser);
         Issue currentIssue = findIssueOrNotFound(issueKey, currentProject);
 
         // if Current User did NOT Open the requested Issue AND is NOT a Project Manager AND is NOT an Admin, display 403 error
@@ -313,10 +346,10 @@ public class IssueController {
             return "redirect:/issues/" + identifier;
     }
 
-    // The project named in the URL, within the caller's organization.
-    private Project findProjectOrNotFound(String identifier, Organization organization) {
-        Project project = projectRepository.findByIdentifierAndOrganization(identifier, organization);
-        if(project == null)
+    // The project named in the URL, within the caller's organization, which the caller must be a member of.
+    private Project findProjectOrNotFound(String identifier, User currentUser) {
+        Project project = projectRepository.findByIdentifierAndOrganization(identifier, currentUser.getOrganization());
+        if(project == null || !OrganizationScope.isMember(currentUser, project))
             throw OrganizationScope.notFound();
 
         return project;
@@ -341,10 +374,10 @@ public class IssueController {
         issue.setDueDate(form.dueDate());
     }
 
-    // The project chosen in a form, which must belong to the caller's organization.
-    private Project projectInOrganization(Long projectId, Organization organization) {
-        Project project = projectId == null ? null : projectRepository.findByIdAndOrganization(projectId, organization);
-        if(project == null)
+    // The project chosen in a form, which must belong to the caller's organization and have the caller as a member.
+    private Project projectOrNotFound(Long projectId, User currentUser) {
+        Project project = projectId == null ? null : projectRepository.findByIdAndOrganization(projectId, currentUser.getOrganization());
+        if(project == null || !OrganizationScope.isMember(currentUser, project))
             throw OrganizationScope.notFound();
 
         return project;

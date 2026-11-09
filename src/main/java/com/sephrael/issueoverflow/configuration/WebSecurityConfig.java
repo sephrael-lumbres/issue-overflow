@@ -43,7 +43,7 @@ public class WebSecurityConfig {
                 .requestMatchers("/projects/new", "/projects/save", "/projects/delete/*").hasAnyAuthority("Project Manager")
 
                 // CRUD operations on Issues allowed to Project Managers, Admins, and Developers
-                .requestMatchers("/issues/*/new", "/issues/*/edit/*", "/issues/*/delete/**", "/issues/new", "/issues/update")
+                .requestMatchers("/issues/*/new", "/issues/*/edit/*", "/issues/*/delete/**", "/issues/new", "/issues/update", "/issues/*/view/*/status")
                     .hasAnyAuthority("Project Manager", "Admin", "Developer")
 
                 // view Issues allowed to all Roles

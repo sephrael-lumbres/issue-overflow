@@ -1,6 +1,8 @@
 package com.sephrael.issueoverflow.controller;
 
 import com.sephrael.issueoverflow.entity.Organization;
+import com.sephrael.issueoverflow.entity.Project;
+import com.sephrael.issueoverflow.entity.User;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -21,5 +23,11 @@ final class OrganizationScope {
 
     static boolean belongsTo(Organization organization, Organization expected) {
         return organization != null && expected != null && Objects.equals(organization.getId(), expected.getId());
+    }
+
+    // Project members see a project's issues, attachments and pages; to anyone else in the organization they look missing.
+    static boolean isMember(User user, Project project) {
+        return user != null && project != null && user.getProjects() != null
+                && user.getProjects().stream().anyMatch(member -> Objects.equals(member.getId(), project.getId()));
     }
 }

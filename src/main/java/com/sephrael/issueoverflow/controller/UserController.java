@@ -4,6 +4,7 @@ import com.sephrael.issueoverflow.controller.form.Passwords;
 import com.sephrael.issueoverflow.controller.form.RegistrationForm;
 import com.sephrael.issueoverflow.entity.Organization;
 import com.sephrael.issueoverflow.entity.Project;
+import com.sephrael.issueoverflow.entity.Role;
 import com.sephrael.issueoverflow.entity.User;
 import com.sephrael.issueoverflow.repository.*;
 import com.sephrael.issueoverflow.service.AWSFileService;
@@ -225,8 +226,13 @@ public class UserController {
                 project == null || !OrganizationScope.belongsTo(project.getOrganization(), currentUser.getOrganization())))
             throw OrganizationScope.notFound();
 
-        // changes a User's Role
-        roleRepository.findRoleById(roleId).addToUser(userToBeUpdated);
+        // changes a User's Role (an unknown role id, which the form never sends, is a 404)
+        Role role = roleRepository.findRoleById(roleId);
+
+        if(role == null)
+            throw OrganizationScope.notFound();
+
+        role.addToUser(userToBeUpdated);
 
         if(projects != null) {
             // decides whether or not to add or remove a User from a Project

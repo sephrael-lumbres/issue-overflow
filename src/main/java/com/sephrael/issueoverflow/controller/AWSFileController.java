@@ -31,21 +31,28 @@ public class AWSFileController {
     @Autowired
     private AWSFileRepository awsFileRepository;
 
-    @PostMapping("/upload/{userId}/{isProfilePicture}")
+    // Profile pictures only; attachments are uploaded with their issue (/issues/new and /issues/update).
+    @PostMapping("/upload/{userId}")
     public String uploadFile(@PathVariable("userId") long userId, @RequestParam("file")MultipartFile file, Principal principal,
-                             @PathVariable("isProfilePicture") boolean isProfilePicture, RedirectAttributes redirectAttributes) {
+                             RedirectAttributes redirectAttributes) {
         User user = userRepository.findUserById(userId);
 
         // if Current User does NOT match the requested User, show the 404 page
         if(userRepository.findByEmail(principal.getName()).getId() != userId)
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
 
+        // judged by the file's bytes, not the type the browser sends
+        if(!file.isEmpty() && !awsFileService.isImage(file)) {
+            redirectAttributes.addFlashAttribute("pictureUploadError", "Profile pictures must be PNG, JPEG, GIF or WebP images.");
+            return "redirect:/account/profile/" + userId;
+        }
+
         // if 'File' input is NOT empty and the 'User' already has a 'Profile Picture', DELETE the User's current
         // 'Profile Picture', then upload the new 'Profile Picture'
         if(!file.isEmpty() && user.hasProfilePicture()) {
             awsFileService.deleteFile(awsFileRepository.findByUserAndIsProfilePictureTrue(user).getFileKey());
             user.setHasProfilePicture(false);
-            awsFileService.checkUserProfilePicture(user, file, isProfilePicture);
+            awsFileService.checkUserProfilePicture(user, file);
             redirectAttributes.addFlashAttribute("pictureUploadSuccess", "Profile Picture has been successfully uploaded");
 
             // if the 'User' uploaded an empty 'File' input AND the 'User' already has a 'Profile Picture', DELETE the
@@ -63,7 +70,7 @@ public class AWSFileController {
             // if 'File' input is NOT empty AND 'User' does NOT have a 'Profile Picture', upload and set the 'File' to
             // the User's 'Profile Picture'
         } else if(!file.isEmpty() && !user.hasProfilePicture()) {
-            awsFileService.checkUserProfilePicture(user, file, isProfilePicture);
+            awsFileService.checkUserProfilePicture(user, file);
             redirectAttributes.addFlashAttribute("pictureUploadSuccess", "Profile Picture has been successfully uploaded");
         } else
             redirectAttributes.addFlashAttribute("pictureUploadError", "An error has occurred while attempting to upload Profile Picture");;

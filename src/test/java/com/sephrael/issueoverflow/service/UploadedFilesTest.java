@@ -27,4 +27,15 @@ class UploadedFilesTest {
 
         assertThat(UploadedFiles.storedName(name)).isEqualTo(name.substring(0, 255));
     }
+
+    @Test
+    void imagesAreRecognizedByTheirFirstBytes() {
+        assertThat(UploadedFiles.imageType(new byte[] {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n'})).isEqualTo("image/png");
+        assertThat(UploadedFiles.imageType(new byte[] {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0})).isEqualTo("image/jpeg");
+        assertThat(UploadedFiles.imageType("GIF89a...".getBytes())).isEqualTo("image/gif");
+        assertThat(UploadedFiles.imageType("RIFF\0\0\0\0WEBPVP8 ".getBytes())).isEqualTo("image/webp");
+        assertThat(UploadedFiles.imageType("<svg onload=alert(1)>".getBytes())).isNull();
+        assertThat(UploadedFiles.imageType(new byte[0])).isNull();
+        assertThat(UploadedFiles.storedContentType(null, new byte[] {1, 2, 3})).isEqualTo("application/octet-stream");
+    }
 }
