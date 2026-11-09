@@ -18,6 +18,7 @@ import jakarta.mail.internet.MimeMessage;
 import java.io.UnsupportedEncodingException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -158,67 +159,36 @@ public class UserService {
         mailSender.send(message);
     }
 
-    // checks which users agreed to receive notifications and adds them to the email recipient list
-    public void checkEmailRecipients(User user, Issue issue, String[] emailRecipients, int i) {
-        // checks if user agreed to send notifications of ALL created issues
-        if(user.isAllIssuesEnabled()) {
-            emailRecipients[i] = user.getEmail();
+    // The project members to notify: those who verified their address, want this kind of event (created, updated or commented),
+    // and want it for this issue (all issues, or the ones they wrote or are assigned to, by whichever boxes they ticked).
+    public List<String> getEmailRecipients(List<User> users, Issue issue, boolean isCreatedIssue, boolean isComment) {
+        List<String> recipients = new ArrayList<>();
 
-            // checks if user agreed to send notifications of ONLY created issues CREATED BY THEM
-        } else if(user.isAuthoredIssuesEnabled()) {
-            if(issue.getUser() == user) {
-                emailRecipients[i] = user.getEmail();
-            }
+        for(User user : users) {
+            boolean wantsThisNotification;
 
-            // checks if user agreed to send notifications of ONLY created issues ASSIGNED TO THEM
-        } else if(user.isAssignedIssuesEnabled()) {
-            if(issue.getAssignedTo() == user) {
-                emailRecipients[i] = user.getEmail();
-            }
+            if(isComment)
+                wantsThisNotification = user.isCommentsEnabled();
+            else if(isCreatedIssue)
+                wantsThisNotification = user.isCreatedEnabled();
+            else
+                wantsThisNotification = user.isUpdatedEnabled();
+
+            if(wantsThisNotification && user.isEmailVerified() && wantsThisIssueNotification(user, issue))
+                recipients.add(user.getEmail());
         }
+
+        return recipients;
     }
 
-    public String[] getEmailRecipients(List<User> users, Issue issue, boolean isCreatedIssue, boolean isComment) {
-        String[] emailRecipients = new String[users.size()];
+    private static boolean wantsThisIssueNotification(User user, Issue issue) {
+        return user.isAllIssuesEnabled()
+                || (user.isAuthoredIssuesEnabled() && isSameUser(issue.getUser(), user))
+                || (user.isAssignedIssuesEnabled() && isSameUser(issue.getAssignedTo(), user));
+    }
 
-        // if notification is for a newly created issue
-        if(isCreatedIssue && !isComment) {
-            for(int i=0; i < users.size(); i++) {
-                User user = users.get(i);
-
-                // checks if user agreed to send notifications of created issues and if the user verified their email address
-                if(user.isCreatedEnabled() && user.isEmailVerified()) {
-                    // checks which users agreed to receive notifications and adds them to the email recipient list
-                    checkEmailRecipients(user, issue, emailRecipients, i);
-                }
-            }
-
-            // else if notification is for an updated issue
-        } else if(!isCreatedIssue && !isComment) {
-            for(int i=0; i < users.size(); i++) {
-                User user = users.get(i);
-
-                // checks if user agreed to send notifications of updated issues and if the user verified their email address
-                if(user.isUpdatedEnabled() && user.isEmailVerified()) {
-                    // checks which users agreed to receive notifications and adds them to the email recipient list
-                    checkEmailRecipients(user, issue, emailRecipients, i);
-                }
-            }
-
-            // else, the notification is for a new comment
-        } else {
-            for(int i=0; i < users.size(); i++) {
-                User user = users.get(i);
-
-                // checks if user agreed to send notifications of added comments and if the user verified their email address
-                if(user.isCommentsEnabled() && user.isEmailVerified()) {
-                    // checks which users agreed to receive notifications and adds them to the email recipient list
-                    checkEmailRecipients(user, issue, emailRecipients, i);
-                }
-            }
-        }
-
-        return emailRecipients;
+    private static boolean isSameUser(User user, User other) {
+        return user != null && other != null && Objects.equals(user.getId(), other.getId());
     }
 
     public void sendEmailNotification(Issue issue, Comment comment, boolean isCreatedIssue,
@@ -234,8 +204,10 @@ public class UserService {
 
         helper.setFrom("notifications@issueoverflow.app", "Issue Overflow");
 
-        if(getEmailRecipients(users, issue, isCreatedIssue, isComment)[0] != null) {
-            helper.setTo(getEmailRecipients(users, issue, isCreatedIssue, isComment));
+        List<String> recipients = getEmailRecipients(users, issue, isCreatedIssue, isComment);
+
+        if(!recipients.isEmpty()) {
+            helper.setTo(recipients.toArray(String[]::new));
 
             String subject = "[" + issue.getIssueKey() + "] " + issue.getTitle();
             helper.setSubject(subject);
