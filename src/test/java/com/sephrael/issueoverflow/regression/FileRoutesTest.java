@@ -91,16 +91,16 @@ class FileRoutesTest extends WebIntegrationTestBase {
         User owner = fixture.projectManager;
         MockHttpSession ownerSession = login(owner.getEmail());
         MockMultipartFile picture = new MockMultipartFile(
-                "file", "avatar.png", "image/png", new byte[] {(byte) 0x89, 'P', 'N', 'G'});
+                "file", "avatar.png", "image/png", new byte[] {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n'});
 
-        mockMvc.perform(multipart("/storage/upload/" + owner.getId() + "/true")
+        mockMvc.perform(multipart("/storage/upload/" + owner.getId())
                         .file(picture).session(ownerSession).with(csrf()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/account/profile/" + owner.getId()));
 
-        User reloaded = userRepository.findByEmail(owner.getEmail());
-        assertThat(reloaded.hasProfilePicture()).isTrue();
-        String key = reloaded.getProfilePictureKey();
+        User reloadedUser = userRepository.findByEmail(owner.getEmail());
+        assertThat(reloadedUser.hasProfilePicture()).isTrue();
+        String key = reloadedUser.getProfilePictureKey();
         assertThat(key).matches(UUID_PATTERN);
 
         String dashboard = mockMvc.perform(get("/dashboard").session(ownerSession))

@@ -99,7 +99,7 @@ class SecurityRuleTableTest extends WebIntegrationTestBase {
                 row("/dashboard",                                         N, Y, Y, Y, Y),
                 row("/issues/all",                                        N, Y, Y, Y, Y),
                 row("/storage/files/some-key",                            N, Y, Y, Y, Y),
-                row("/storage/upload/1/true",                             N, Y, Y, Y, Y),
+                row("/storage/upload/1",                                  N, Y, Y, Y, Y),
                 row("/organization/joining",                              N, Y, Y, Y, Y),
                 row("/account/profile/1",                                 N, Y, Y, Y, Y),
                 row("/resend-verification-email",                         N, Y, Y, Y, Y),
