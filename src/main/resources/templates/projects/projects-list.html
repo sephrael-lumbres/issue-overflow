@@ -295,13 +295,13 @@
                                             </td>
                                             <!-- Actions (Edit and Delete) -->
                                             <td class="align-middle text-center">
-                                                <button sec:authorize="hasAnyAuthority('Project Manager', 'Admin')"
+                                                <button sec:authorize="hasAuthority('Project Manager')"
                                                         class="btn btn-datatable btn-icon btn-transparent-dark me-2"
                                                         type="button" data-bs-toggle="modal" data-bs-target="#editProjectModal"
                                                         th:attrappend="data-bs-target=${project.id}">
                                                     <i data-feather="edit"></i>
                                                 </button>
-                                                <form sec:authorize="hasAnyAuthority('Project Manager', 'Admin')" class="d-inline" method="post"
+                                                <form sec:authorize="hasAuthority('Project Manager')" class="d-inline" method="post"
                                                       th:action="@{'/projects/delete/' + ${project.id}}">
                                                     <button type="submit" class="btn btn-datatable btn-icon btn-transparent-dark"
                                                             th:attr="data-confirm=|Are you sure you want to delete Project &quot;${project.name}&quot;?|">
