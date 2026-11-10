@@ -5,24 +5,26 @@ import com.sephrael.issueoverflow.entity.*;
 import com.sephrael.issueoverflow.repository.IssueRepository;
 import com.sephrael.issueoverflow.repository.RoleRepository;
 import com.sephrael.issueoverflow.repository.UserRepository;
+import com.sephrael.issueoverflow.service.mail.Email;
+import com.sephrael.issueoverflow.service.mail.EmailSender;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.HtmlUtils;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
-import java.io.UnsupportedEncodingException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 @Service
 public class UserService {
+
+    private static final String SENDER_NAME = "Issue Overflow";
+    private static final String SUPPORT_ADDRESS = "support@issueoverflow.app";
+    private static final String NOTIFICATIONS_ADDRESS = "notifications@issueoverflow.app";
 
     @Autowired
     private UserRepository userRepository;
@@ -31,7 +33,7 @@ public class UserService {
     @Autowired
     private IssueRepository issueRepository;
     @Autowired
-    private JavaMailSender mailSender;
+    private EmailSender emailSender;
     @Autowired
     private EmailLinks emailLinks;
     @Autowired
@@ -90,16 +92,9 @@ public class UserService {
         return expiresAt == null || !expiresAt.isAfter(LocalDateTime.now());
     }
 
-    public void sendPasswordResetEmail(String recipientEmail, String token) throws MessagingException, UnsupportedEncodingException {
+    public void sendPasswordResetEmail(String recipientEmail, String token) {
         String link = HtmlUtils.htmlEscape(emailLinks.passwordReset(token));
-        MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message);
-
-        helper.setFrom("support@issueoverflow.app", "Issue Overflow");
-        helper.setTo(recipientEmail);
-
         String subject = "Here is the link to reset your password";
-
         String content = "<p>Hello,</p>"
                 + "<p>You have requested to reset your password.</p>"
                 + "<p>Click the link below to reset and change your password:</p>"
@@ -111,10 +106,7 @@ public class UserService {
                 + "<p>Ignore this email if you do remember your password, "
                 + "or if you have not made this request.</p>";
 
-        helper.setSubject(subject);
-        helper.setText(content, true);
-
-        mailSender.send(message);
+        emailSender.send(new Email(SUPPORT_ADDRESS, SENDER_NAME, List.of(recipientEmail), subject, content));
     }
 
     public void updatePassword(User user, String newPassword) {
@@ -126,7 +118,7 @@ public class UserService {
         userRepository.save(user);
     }
 
-    public void sendVerificationEmail(User user) throws MessagingException, UnsupportedEncodingException {
+    public void sendVerificationEmail(User user) {
         String emailVerificationToken = TokenGenerator.newToken();
         String verifyEmailLink = HtmlUtils.htmlEscape(emailLinks.emailVerification(emailVerificationToken));
 
@@ -134,14 +126,7 @@ public class UserService {
         user.setEmailVerificationTokenExpiresAt(LocalDateTime.now().plus(appProperties.emailVerificationTtl()));
         userRepository.save(user);
 
-        MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message);
-
-        helper.setFrom("support@issueoverflow.app", "Issue Overflow");
-        helper.setTo(user.getEmail());
-
         String subject = "Here is the link to verify your email address";
-
         String content = "<p>Hello " + HtmlUtils.htmlEscape(user.getFullName()) + ",</p>"
                 + "<p>You have requested to verify your email address to receive notifications.</p>"
                 + "<p>Click the link below to verify your email address:</p>"
@@ -152,93 +137,51 @@ public class UserService {
                 + "<br>"
                 + "<p>Ignore this email if you have not made this request.</p>";
 
-        helper.setSubject(subject);
-        helper.setText(content, true);
-
-        mailSender.send(message);
+        emailSender.send(new Email(SUPPORT_ADDRESS, SENDER_NAME, List.of(user.getEmail()), subject, content));
     }
 
-    // checks which users agreed to receive notifications and adds them to the email recipient list
-    public void checkEmailRecipients(User user, Issue issue, String[] emailRecipients, int i) {
-        // checks if user agreed to send notifications of ALL created issues
-        if(user.isAllIssuesEnabled()) {
-            emailRecipients[i] = user.getEmail();
+    // The project members to notify: those who verified their address, want this kind of event (created, updated or commented),
+    // and want it for this issue (all issues, or the ones they wrote or are assigned to, by whichever boxes they ticked).
+    public List<String> getEmailRecipients(List<User> users, Issue issue, boolean isCreatedIssue, boolean isComment) {
+        List<String> recipients = new ArrayList<>();
 
-            // checks if user agreed to send notifications of ONLY created issues CREATED BY THEM
-        } else if(user.isAuthoredIssuesEnabled()) {
-            if(issue.getUser() == user) {
-                emailRecipients[i] = user.getEmail();
-            }
+        for(User user : users) {
+            boolean wantsThisNotification;
 
-            // checks if user agreed to send notifications of ONLY created issues ASSIGNED TO THEM
-        } else if(user.isAssignedIssuesEnabled()) {
-            if(issue.getAssignedTo() == user) {
-                emailRecipients[i] = user.getEmail();
-            }
-        }
-    }
+            if(isComment)
+                wantsThisNotification = user.isCommentsEnabled();
+            else if(isCreatedIssue)
+                wantsThisNotification = user.isCreatedEnabled();
+            else
+                wantsThisNotification = user.isUpdatedEnabled();
 
-    public String[] getEmailRecipients(List<User> users, Issue issue, boolean isCreatedIssue, boolean isComment) {
-        String[] emailRecipients = new String[users.size()];
-
-        // if notification is for a newly created issue
-        if(isCreatedIssue && !isComment) {
-            for(int i=0; i < users.size(); i++) {
-                User user = users.get(i);
-
-                // checks if user agreed to send notifications of created issues and if the user verified their email address
-                if(user.isCreatedEnabled() && user.isEmailVerified()) {
-                    // checks which users agreed to receive notifications and adds them to the email recipient list
-                    checkEmailRecipients(user, issue, emailRecipients, i);
-                }
-            }
-
-            // else if notification is for an updated issue
-        } else if(!isCreatedIssue && !isComment) {
-            for(int i=0; i < users.size(); i++) {
-                User user = users.get(i);
-
-                // checks if user agreed to send notifications of updated issues and if the user verified their email address
-                if(user.isUpdatedEnabled() && user.isEmailVerified()) {
-                    // checks which users agreed to receive notifications and adds them to the email recipient list
-                    checkEmailRecipients(user, issue, emailRecipients, i);
-                }
-            }
-
-            // else, the notification is for a new comment
-        } else {
-            for(int i=0; i < users.size(); i++) {
-                User user = users.get(i);
-
-                // checks if user agreed to send notifications of added comments and if the user verified their email address
-                if(user.isCommentsEnabled() && user.isEmailVerified()) {
-                    // checks which users agreed to receive notifications and adds them to the email recipient list
-                    checkEmailRecipients(user, issue, emailRecipients, i);
-                }
-            }
+            if(wantsThisNotification && user.isEmailVerified() && wantsThisIssueNotification(user, issue))
+                recipients.add(user.getEmail());
         }
 
-        return emailRecipients;
+        return recipients;
     }
 
-    public void sendEmailNotification(Issue issue, Comment comment, boolean isCreatedIssue,
-                                      boolean isComment) throws MessagingException, UnsupportedEncodingException {
+    private static boolean wantsThisIssueNotification(User user, Issue issue) {
+        return user.isAllIssuesEnabled()
+                || (user.isAuthoredIssuesEnabled() && isSameUser(issue.getUser(), user))
+                || (user.isAssignedIssuesEnabled() && isSameUser(issue.getAssignedTo(), user));
+    }
+
+    private static boolean isSameUser(User user, User other) {
+        return user != null && other != null && Objects.equals(user.getId(), other.getId());
+    }
+
+    public void sendEmailNotification(Issue issue, Comment comment, boolean isCreatedIssue, boolean isComment) {
         List<User> users = issue.getProject().getUsers();
         // names, titles and keys are user input: escape them, as the HTML body would render them
         String link = HtmlUtils.htmlEscape(emailLinks.issue(issue));
         String issueKey = HtmlUtils.htmlEscape(issue.getIssueKey());
         String content;
 
-        MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message);
-
-        helper.setFrom("notifications@issueoverflow.app", "Issue Overflow");
-
-        if(getEmailRecipients(users, issue, isCreatedIssue, isComment)[0] != null) {
-            helper.setTo(getEmailRecipients(users, issue, isCreatedIssue, isComment));
-
+        List<String> recipients = getEmailRecipients(users, issue, isCreatedIssue, isComment);
+        if(!recipients.isEmpty()) {
             String subject = "[" + issue.getIssueKey() + "] " + issue.getTitle();
-            helper.setSubject(subject);
 
             // if notification is for a newly created issue
             if (isCreatedIssue && !isComment) {
@@ -267,12 +210,9 @@ public class UserService {
                         + "<br>"
                         + "<p>Or, copy and paste this link into your browser:</p>"
                         + "<p><a href=\"" + link + "\">" + link + "</a></p>";
-
             }
 
-            helper.setText(content, true);
-
-            mailSender.send(message);
+            emailSender.send(new Email(NOTIFICATIONS_ADDRESS, SENDER_NAME, recipients, subject, content));
         }
     }
 
