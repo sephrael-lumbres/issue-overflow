@@ -398,19 +398,4 @@ public class IssueController {
 
         return assignee;
     }
-
-//    @GetMapping(path = "/json")
-//    public @ResponseBody Iterable<Issue> getAllIssues() {
-//        return issueService.listAll();
-//    }
-//
-//    @GetMapping(path = "/{identifier}/json")
-//    public @ResponseBody Iterable<Issue> getAllIssuesByProject(@PathVariable("identifier") String identifier, Principal principal) {
-//        return issueService.findProjectByIdentifierAndOrganization(identifier, userRepository.findByEmail(principal.getName()).getOrganization());
-//    }
-//
-//    @GetMapping(path = "/comments/json")
-//    public @ResponseBody Iterable<Comment> getAllComments() {
-//        return commentRepository.findAll();
-//    }
 }

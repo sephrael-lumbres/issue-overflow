@@ -178,10 +178,4 @@ public class ProjectController {
 
         return "redirect:/projects/all";
     }
-
-//    @GetMapping(path = "/json")
-//    public @ResponseBody
-//    List<Project> getAllProjects() {
-//        return projectRepository.findAll();
-//    }
 }

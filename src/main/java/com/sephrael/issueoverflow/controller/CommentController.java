@@ -133,11 +133,4 @@ public class CommentController {
 
         return comment;
     }
-
-//    @GetMapping(path = "/json")
-//    public @ResponseBody Iterable<Comment> getAllCommentsByIssueId(@PathVariable(value = "issueKey") String issueKey,
-//                                                                   @PathVariable(name = "identifier") String identifier, Principal principal) {
-//        return issueRepository.findByIssueKeyAndOrganization(issueKey,
-//                userRepository.findByEmail(principal.getName()).getOrganization()).getComments();
-//    }
 }

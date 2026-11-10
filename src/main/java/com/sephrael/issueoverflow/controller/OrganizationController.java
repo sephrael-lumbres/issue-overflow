@@ -169,12 +169,6 @@ public class OrganizationController {
         return "organization/join-organization";
     }
 
-//    @GetMapping(path = "/json")
-//    public @ResponseBody
-//    Iterable<Organization> getAllOrganizations() {
-//        return organizationRepository.findAll();
-//    }
-
     // feature request: be able to add users by email, to an organization
     // try to get "multi-tenant-add-users.html" to work
 }
