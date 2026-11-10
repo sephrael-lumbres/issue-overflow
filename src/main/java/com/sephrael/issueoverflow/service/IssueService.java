@@ -64,6 +64,8 @@ public class IssueService {
         issueRepository.deleteById(id);
     }
 
+    // issue1 is the newer revision and issue2 the one before it.
+    // Each row describes a change made in issue1's revision, so it carries that revision (its number and time).
     public List<Issue> setIssueChangeHistoryValues(Issue issue1, Issue issue2, List<Issue> issues) {
         Issue newIssue;
         User updatedBy;
@@ -79,7 +81,7 @@ public class IssueService {
             newIssue.setProperty("Title");
             newIssue.setOldValue(issue2.getTitle());
             newIssue.setNewValue(issue1.getTitle());
-            newIssue.setChangeVersion(issue2.getChangeVersion());
+            newIssue.setChangeVersion(issue1.getChangeVersion());
             newIssue.setUpdatedBy(updatedBy);
             issues.add(newIssue);
         }
@@ -88,7 +90,7 @@ public class IssueService {
             newIssue.setProperty("Description");
             newIssue.setOldValue(issue2.getDescription());
             newIssue.setNewValue(issue1.getDescription());
-            newIssue.setChangeVersion(issue2.getChangeVersion());
+            newIssue.setChangeVersion(issue1.getChangeVersion());
             newIssue.setUpdatedBy(updatedBy);
             issues.add(newIssue);
         }
@@ -112,7 +114,7 @@ public class IssueService {
                 User issue1User = userRepository.findUserById(issue1.getAssignedTo().getId());
                 newIssue.setNewValue(issue1User.getFullName());
             }
-            newIssue.setChangeVersion(issue2.getChangeVersion());
+            newIssue.setChangeVersion(issue1.getChangeVersion());
             newIssue.setUpdatedBy(updatedBy);
             issues.add(newIssue);
         }
@@ -121,7 +123,7 @@ public class IssueService {
             newIssue.setProperty("Project");
             newIssue.setOldValue(projectRepository.findProjectById(issue2.getProject().getId()).getName());
             newIssue.setNewValue(projectRepository.findProjectById(issue1.getProject().getId()).getName());
-            newIssue.setChangeVersion(issue2.getChangeVersion());
+            newIssue.setChangeVersion(issue1.getChangeVersion());
             newIssue.setUpdatedBy(updatedBy);
             issues.add(newIssue);
         }
@@ -130,7 +132,7 @@ public class IssueService {
             newIssue.setProperty("Type");
             newIssue.setOldValue(issue2.getType());
             newIssue.setNewValue(issue1.getType());
-            newIssue.setChangeVersion(issue2.getChangeVersion());
+            newIssue.setChangeVersion(issue1.getChangeVersion());
             newIssue.setUpdatedBy(updatedBy);
             issues.add(newIssue);
         }
@@ -139,7 +141,7 @@ public class IssueService {
             newIssue.setProperty("Priority");
             newIssue.setOldValue(issue2.getPriority());
             newIssue.setNewValue(issue1.getPriority());
-            newIssue.setChangeVersion(issue2.getChangeVersion());
+            newIssue.setChangeVersion(issue1.getChangeVersion());
             newIssue.setUpdatedBy(updatedBy);
             issues.add(newIssue);
         }
@@ -148,7 +150,7 @@ public class IssueService {
             newIssue.setProperty("Status");
             newIssue.setOldValue(issue2.getStatus());
             newIssue.setNewValue(issue1.getStatus());
-            newIssue.setChangeVersion(issue2.getChangeVersion());
+            newIssue.setChangeVersion(issue1.getChangeVersion());
             newIssue.setUpdatedBy(updatedBy);
             issues.add(newIssue);
         }
@@ -167,7 +169,7 @@ public class IssueService {
             else
                 newIssue.setNewValue(issue1.getEstimatedHours().toString());
 
-            newIssue.setChangeVersion(issue2.getChangeVersion());
+            newIssue.setChangeVersion(issue1.getChangeVersion());
             newIssue.setUpdatedBy(updatedBy);
             issues.add(newIssue);
         }
@@ -187,7 +189,7 @@ public class IssueService {
             else
                 newIssue.setNewValue(issue1.getDueDate().format(DateTimeFormatter.ofPattern("dd MMM yyyy")));
 
-            newIssue.setChangeVersion(issue2.getChangeVersion());
+            newIssue.setChangeVersion(issue1.getChangeVersion());
             newIssue.setUpdatedBy(updatedBy);
             issues.add(newIssue);
         }
