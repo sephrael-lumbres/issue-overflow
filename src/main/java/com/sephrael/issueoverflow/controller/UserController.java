@@ -11,11 +11,8 @@ import com.sephrael.issueoverflow.service.AWSFileService;
 import com.sephrael.issueoverflow.service.TokenGenerator;
 import com.sephrael.issueoverflow.service.UserService;
 import jakarta.validation.Valid;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.repository.query.Param;
-import org.springframework.mail.MailException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
@@ -26,10 +23,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import jakarta.mail.MessagingException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.security.Principal;
 import java.util.List;
@@ -37,8 +32,6 @@ import java.util.Objects;
 
 @Controller
 public class UserController {
-
-    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
     @Autowired
     private UserRepository userRepository;
@@ -112,16 +105,12 @@ public class UserController {
     @PostMapping("/reset-password")
     public String processResetPassword(@RequestParam("email") String email, Model model) {
         // The page says the same thing whether or not the address has an account, so it can't be used to find out who
-        // is registered. A failed send is logged rather than shown, for the same reason.
+        // is registered. The email is sent after the response (EmailSender), so the answer doesn't wait for the mail
+        // server, and a failed send is logged rather than shown.
         if(userRepository.findByEmail(email) != null) {
             String token = TokenGenerator.newToken();
             userService.updateResetPasswordToken(token, email);
-
-            try {
-                userService.sendPasswordResetEmail(email, token);
-            } catch (UnsupportedEncodingException | MessagingException | MailException exception) {
-                logger.warn("Could not send a password reset email", exception);
-            }
+            userService.sendPasswordResetEmail(email, token);
         }
 
         model.addAttribute("resetRequested", true);

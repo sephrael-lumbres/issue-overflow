@@ -5,17 +5,14 @@ import com.sephrael.issueoverflow.entity.*;
 import com.sephrael.issueoverflow.repository.IssueRepository;
 import com.sephrael.issueoverflow.repository.RoleRepository;
 import com.sephrael.issueoverflow.repository.UserRepository;
+import com.sephrael.issueoverflow.service.mail.Email;
+import com.sephrael.issueoverflow.service.mail.EmailSender;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.HtmlUtils;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
-import java.io.UnsupportedEncodingException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -25,6 +22,10 @@ import java.util.Objects;
 @Service
 public class UserService {
 
+    private static final String SENDER_NAME = "Issue Overflow";
+    private static final String SUPPORT_ADDRESS = "support@issueoverflow.app";
+    private static final String NOTIFICATIONS_ADDRESS = "notifications@issueoverflow.app";
+
     @Autowired
     private UserRepository userRepository;
     @Autowired
@@ -32,7 +33,7 @@ public class UserService {
     @Autowired
     private IssueRepository issueRepository;
     @Autowired
-    private JavaMailSender mailSender;
+    private EmailSender emailSender;
     @Autowired
     private EmailLinks emailLinks;
     @Autowired
@@ -91,16 +92,9 @@ public class UserService {
         return expiresAt == null || !expiresAt.isAfter(LocalDateTime.now());
     }
 
-    public void sendPasswordResetEmail(String recipientEmail, String token) throws MessagingException, UnsupportedEncodingException {
+    public void sendPasswordResetEmail(String recipientEmail, String token) {
         String link = HtmlUtils.htmlEscape(emailLinks.passwordReset(token));
-        MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message);
-
-        helper.setFrom("support@issueoverflow.app", "Issue Overflow");
-        helper.setTo(recipientEmail);
-
         String subject = "Here is the link to reset your password";
-
         String content = "<p>Hello,</p>"
                 + "<p>You have requested to reset your password.</p>"
                 + "<p>Click the link below to reset and change your password:</p>"
@@ -112,10 +106,7 @@ public class UserService {
                 + "<p>Ignore this email if you do remember your password, "
                 + "or if you have not made this request.</p>";
 
-        helper.setSubject(subject);
-        helper.setText(content, true);
-
-        mailSender.send(message);
+        emailSender.send(new Email(SUPPORT_ADDRESS, SENDER_NAME, List.of(recipientEmail), subject, content));
     }
 
     public void updatePassword(User user, String newPassword) {
@@ -127,7 +118,7 @@ public class UserService {
         userRepository.save(user);
     }
 
-    public void sendVerificationEmail(User user) throws MessagingException, UnsupportedEncodingException {
+    public void sendVerificationEmail(User user) {
         String emailVerificationToken = TokenGenerator.newToken();
         String verifyEmailLink = HtmlUtils.htmlEscape(emailLinks.emailVerification(emailVerificationToken));
 
@@ -135,14 +126,7 @@ public class UserService {
         user.setEmailVerificationTokenExpiresAt(LocalDateTime.now().plus(appProperties.emailVerificationTtl()));
         userRepository.save(user);
 
-        MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message);
-
-        helper.setFrom("support@issueoverflow.app", "Issue Overflow");
-        helper.setTo(user.getEmail());
-
         String subject = "Here is the link to verify your email address";
-
         String content = "<p>Hello " + HtmlUtils.htmlEscape(user.getFullName()) + ",</p>"
                 + "<p>You have requested to verify your email address to receive notifications.</p>"
                 + "<p>Click the link below to verify your email address:</p>"
@@ -153,10 +137,7 @@ public class UserService {
                 + "<br>"
                 + "<p>Ignore this email if you have not made this request.</p>";
 
-        helper.setSubject(subject);
-        helper.setText(content, true);
-
-        mailSender.send(message);
+        emailSender.send(new Email(SUPPORT_ADDRESS, SENDER_NAME, List.of(user.getEmail()), subject, content));
     }
 
     // The project members to notify: those who verified their address, want this kind of event (created, updated or commented),
@@ -191,26 +172,16 @@ public class UserService {
         return user != null && other != null && Objects.equals(user.getId(), other.getId());
     }
 
-    public void sendEmailNotification(Issue issue, Comment comment, boolean isCreatedIssue,
-                                      boolean isComment) throws MessagingException, UnsupportedEncodingException {
+    public void sendEmailNotification(Issue issue, Comment comment, boolean isCreatedIssue, boolean isComment) {
         List<User> users = issue.getProject().getUsers();
         // names, titles and keys are user input: escape them, as the HTML body would render them
         String link = HtmlUtils.htmlEscape(emailLinks.issue(issue));
         String issueKey = HtmlUtils.htmlEscape(issue.getIssueKey());
         String content;
 
-        MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message);
-
-        helper.setFrom("notifications@issueoverflow.app", "Issue Overflow");
-
         List<String> recipients = getEmailRecipients(users, issue, isCreatedIssue, isComment);
-
         if(!recipients.isEmpty()) {
-            helper.setTo(recipients.toArray(String[]::new));
-
             String subject = "[" + issue.getIssueKey() + "] " + issue.getTitle();
-            helper.setSubject(subject);
 
             // if notification is for a newly created issue
             if (isCreatedIssue && !isComment) {
@@ -239,12 +210,9 @@ public class UserService {
                         + "<br>"
                         + "<p>Or, copy and paste this link into your browser:</p>"
                         + "<p><a href=\"" + link + "\">" + link + "</a></p>";
-
             }
 
-            helper.setText(content, true);
-
-            mailSender.send(message);
+            emailSender.send(new Email(NOTIFICATIONS_ADDRESS, SENDER_NAME, recipients, subject, content));
         }
     }
 

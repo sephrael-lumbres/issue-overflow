@@ -17,8 +17,6 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import jakarta.mail.MessagingException;
-import java.io.UnsupportedEncodingException;
 import java.security.Principal;
 import java.util.Objects;
 
@@ -41,8 +39,7 @@ public class CommentController {
 
     @PostMapping("/new")
     public String addComment(@PathVariable(value = "issueKey") String issueKey, @Valid CommentForm form, BindingResult bindingResult,
-                             Principal principal, @PathVariable String identifier, RedirectAttributes redirectAttributes)
-            throws MessagingException, UnsupportedEncodingException {
+                             Principal principal, @PathVariable String identifier, RedirectAttributes redirectAttributes) {
         User currentUser = userRepository.findByEmail(principal.getName());
 
         if(currentUser.getOrganization() == null)

@@ -20,8 +20,6 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import jakarta.mail.MessagingException;
-import java.io.UnsupportedEncodingException;
 import java.security.Principal;
 import java.util.List;
 import java.util.Objects;
@@ -148,7 +146,7 @@ public class IssueController {
     @PostMapping(value = "/new")
     public String saveNewIssue(@Valid IssueForm form, BindingResult bindingResult, Principal principal,
                                @RequestParam(value = "files", required = false) MultipartFile[] files,
-                               RedirectAttributes redirectAttributes) throws MessagingException, UnsupportedEncodingException {
+                               RedirectAttributes redirectAttributes) {
         User currentUser = userRepository.findByEmail(principal.getName());
         Organization currentOrganization = currentUser.getOrganization();
 
@@ -193,7 +191,7 @@ public class IssueController {
     public String updateIssue(@RequestParam("id") Long id, @Valid IssueForm form, BindingResult bindingResult, Principal principal,
                               @RequestParam(value = "files", required = false) MultipartFile[] files,
                               @RequestParam(value = "isAttachFileForm", required = false) boolean isAttachFileForm,
-                              RedirectAttributes redirectAttributes) throws MessagingException, UnsupportedEncodingException {
+                              RedirectAttributes redirectAttributes) {
         User currentUser = userRepository.findByEmail(principal.getName());
         Organization currentOrganization = currentUser.getOrganization();
 
@@ -242,7 +240,7 @@ public class IssueController {
     @PostMapping("/{identifier}/view/{issueKey}/status")
     public String changeIssueStatus(@PathVariable("identifier") String identifier, @PathVariable("issueKey") String issueKey,
                                     @Valid IssueStatusForm form, BindingResult bindingResult, Principal principal,
-                                    Authentication authentication) throws MessagingException, UnsupportedEncodingException {
+                                    Authentication authentication) {
         User currentUser = userRepository.findByEmail(principal.getName());
         if(currentUser.getOrganization() == null)
             return "organization/select-organization";
