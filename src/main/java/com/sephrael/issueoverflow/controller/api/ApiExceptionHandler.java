@@ -24,7 +24,7 @@ import java.util.List;
  *   <li>An invalid request body: 400, with an {@code errors} list of field names and the failed constraint (no message text).</li>
  *   <li>Anything unexpected: 500, logged here, with no detail from the exception in the body.</li>
  * </ul>
- * 401 and 403 from the security rules never reach a controller; ApiProblems in the configuration package writes them.
+ * 401 and 403 from the security rules never reach a controller; ApiSecurityErrors in the configuration package writes them.
  */
 @RestControllerAdvice(basePackageClasses = ApiExceptionHandler.class)
 public class ApiExceptionHandler extends ResponseEntityExceptionHandler {

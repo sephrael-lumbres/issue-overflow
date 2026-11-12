@@ -7,6 +7,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,7 +23,7 @@ import java.util.Objects;
  * <p>
  * A session keeps the authorities and password hash it was granted at login.
  * On every request from a logged-in user, this filter compares the session with the stored user.
- * It logs the session out and redirects to {@code /login?expired} when:
+ * It logs the session out and redirects to {@code /login?expired} (a JSON API request gets a 401 problem-details body instead) when:
  * <ul>
  *   <li>the user was deleted or disabled</li>
  *   <li>the user changed their email address</li>
@@ -50,7 +51,11 @@ public class StaleSessionFilter extends OncePerRequestFilter {
         if(authentication instanceof UsernamePasswordAuthenticationToken && authentication.isAuthenticated()
                 && isStale(userRepository.findByEmail(authentication.getName()), authentication)) {
             logoutHandler.logout(request, response, authentication);
-            response.sendRedirect(request.getContextPath() + "/login?expired");
+
+            if(ApiSecurityErrors.API_REQUESTS.matches(request))
+                ApiSecurityErrors.write(response, HttpStatus.UNAUTHORIZED, ApiSecurityErrors.SESSION_ENDED);
+            else
+                response.sendRedirect(request.getContextPath() + "/login?expired");
             return;
         }
 
