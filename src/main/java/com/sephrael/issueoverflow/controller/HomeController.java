@@ -66,7 +66,4 @@ public class HomeController {
 
         return "dashboard";
     }
-
-//    @RequestMapping(value = "/", method = RequestMethod.GET)
-//    public String home() {return "landing1";}
 }
