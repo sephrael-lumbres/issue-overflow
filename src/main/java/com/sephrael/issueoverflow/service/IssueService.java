@@ -6,16 +6,10 @@ import com.sephrael.issueoverflow.repository.ProjectRepository;
 import com.sephrael.issueoverflow.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.history.RevisionMetadata;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.ui.Model;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
-import java.io.UnsupportedEncodingException;
 import java.security.Principal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -33,31 +27,9 @@ public class IssueService {
     private ProjectRepository projectRepository;
     @Autowired
     private IssueKeys issueKeys;
-    @Autowired
-    private JavaMailSender mailSender;
-
-    public List<Issue> listAll() {
-        return (List<Issue>) issueRepository.findAll();
-    }
-
-    public List<Issue> findProjectByIdentifierAndOrganization(String identifier, Organization organization) {
-        Project project = projectRepository.findByIdentifierAndOrganization(identifier, organization);
-
-        return issueRepository.findByProject(project);
-    }
-
-    public List<Issue> findProjectById(Long id) {
-        Project project = projectRepository.findProjectById(id);
-
-        return issueRepository.findByProject(project);
-    }
 
     public void save(Issue issue) {
         issueRepository.save(issue);
-    }
-
-    public Issue find(long id) {
-        return issueRepository.findById(id).get();
     }
 
     public void delete(long id) {

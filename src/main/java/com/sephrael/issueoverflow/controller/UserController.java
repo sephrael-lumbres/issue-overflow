@@ -324,9 +324,4 @@ public class UserController {
         }
         return "/dashboard";
     }
-
-//    @GetMapping(path = "/users/json")
-//    public @ResponseBody Iterable<User> getAllUsersJson() {
-//        return userRepository.findAll();
-//    }
 }

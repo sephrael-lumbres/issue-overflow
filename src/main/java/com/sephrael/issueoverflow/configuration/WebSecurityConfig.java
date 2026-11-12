@@ -3,11 +3,19 @@ package com.sephrael.issueoverflow.configuration;
 import com.sephrael.issueoverflow.repository.UserRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
+import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
+import org.springframework.security.web.savedrequest.RequestCache;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.util.matcher.AndRequestMatcher;
+import org.springframework.security.web.util.matcher.AnyRequestMatcher;
+import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 
 @Configuration
 @EnableWebSecurity
@@ -64,8 +72,27 @@ public class WebSecurityConfig {
             )
             .logout(logout -> logout
                 .logoutSuccessUrl("/login")
-                .permitAll());
+                .permitAll())
+            // the JSON API answers 401 and 403 with a problem-details body; pages keep the login redirect and error pages
+            .exceptionHandling(exceptions -> exceptions
+                .defaultAuthenticationEntryPointFor(ApiSecurityErrors.entryPoint(), ApiSecurityErrors.API_REQUESTS)
+                // every other request keeps the login redirect, whatever its Accept header
+                .defaultAuthenticationEntryPointFor(new LoginUrlAuthenticationEntryPoint("/login"), AnyRequestMatcher.INSTANCE)
+                .accessDeniedHandler(ApiSecurityErrors.accessDeniedHandler()))
+            .requestCache(cache -> cache.requestCache(pageRequestCache()));
 
         return http.build();
+    }
+
+    // Saves the page a logged-out user asked for, so login can send them back to it. Only GETs are saved, never /api/ calls
+    // (login would land on raw JSON) or the /favicon.ico and /.well-known/ requests that browsers and their tools make on their own.
+    private static RequestCache pageRequestCache() {
+        HttpSessionRequestCache requestCache = new HttpSessionRequestCache();
+        requestCache.setRequestMatcher(new AndRequestMatcher(
+                PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.GET, "/**"),
+                new NegatedRequestMatcher(PathPatternRequestMatcher.withDefaults().matcher("/favicon.ico")),
+                new NegatedRequestMatcher(PathPatternRequestMatcher.withDefaults().matcher("/.well-known/**")),
+                new NegatedRequestMatcher(ApiSecurityErrors.API_REQUESTS)));
+        return requestCache;
     }
 }

@@ -103,6 +103,7 @@ class SecurityRuleTableTest extends WebIntegrationTestBase {
                 row("/organization/joining",                              N, Y, Y, Y, Y),
                 row("/account/profile/1",                                 N, Y, Y, Y, Y),
                 row("/resend-verification-email",                         N, Y, Y, Y, Y),
+                row("/api/anything",                                      N, Y, Y, Y, Y),
 
                 // trailing slashes: unnamed paths fall through to "any signed-in user", except under a "/**" rule
                 row("/organization/update/",                              N, Y, Y, Y, Y),
