@@ -57,7 +57,6 @@ class SecurityRuleTableTest extends WebIntegrationTestBase {
                 row("/login",                                             Y, Y, Y, Y, Y),
                 row("/process_register",                                  Y, Y, Y, Y, Y),
                 row("/privacy",                                           Y, Y, Y, Y, Y),
-                row("/cookie-policy",                                     Y, Y, Y, Y, Y),
                 row("/getting-started",                                   Y, Y, Y, Y, Y),
                 row("/getting-started/introduction",                      Y, Y, Y, Y, Y),
                 row("/knowledge-base/projects/creating-a-project",        Y, Y, Y, Y, Y),

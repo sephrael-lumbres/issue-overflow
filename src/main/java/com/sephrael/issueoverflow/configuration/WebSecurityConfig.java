@@ -36,7 +36,7 @@ public class WebSecurityConfig {
             .authorizeHttpRequests(authorize -> authorize
                 // paths that anyone can access
                 .requestMatchers("/register", "/login", "/process_register").permitAll()
-                .requestMatchers("/privacy", "/cookie-policy").permitAll()
+                .requestMatchers("/privacy").permitAll()
                 .requestMatchers("/getting-started", "/getting-started/*", "/knowledge-base/**", "/contact-us/**").permitAll()
                 .requestMatchers("/reset-password", "/change-password*", "/verify-email*").permitAll()
                 .requestMatchers("/error", "/js/**", "/assets/**", "/css/**").permitAll()
