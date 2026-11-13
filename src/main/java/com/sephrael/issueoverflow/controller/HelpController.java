@@ -78,12 +78,4 @@ public class HelpController {
 
         return "help/privacy-policy";
     }
-
-    @RequestMapping("/cookie-policy")
-    public String showCookiePolicyPage(Principal principal, Model model) {
-        if(principal != null)
-            model.addAttribute("currentUser", userRepository.findByEmail(principal.getName()));
-
-        return "help/cookie-policy";
-    }
 }
