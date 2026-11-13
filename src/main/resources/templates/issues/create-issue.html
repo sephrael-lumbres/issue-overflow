@@ -57,14 +57,6 @@
                                 individual features and settings.
                             </div>
                         </a>
-<!--                        <div class="dropdown-divider m-0"></div>-->
-<!--                        <a class="dropdown-item py-3" href="https://github.com/sephraellumbres/Issue-Overflow" target="_blank">-->
-<!--                            <div class="icon-stack bg-primary-soft text-primary me-4"><i data-feather="github"></i></div>-->
-<!--                            <div>-->
-<!--                                <div class="small text-gray-500">Github</div>-->
-<!--                                Code snippets and reference-->
-<!--                            </div>-->
-<!--                        </a>-->
                     </div>
                 </li>
                 <!-- User Dropdown-->
@@ -227,16 +219,6 @@
                         <div th:text="${issueFormError}" th:if="${issueFormError}" id="popupAlerts" class="alert alert-danger alert-dismissible fade show text-center" role="alert"></div>
                         <form action="#" th:action="@{/issues/new}" th:object="${issue}" method="post"
                               enctype="multipart/form-data" class="row gx-4">
-                            <!--  THIS ASSIGNS EACH ISSUE TO ITS CREATOR, THIS SHIT TOOK 30-40 HOURS TO FIGURE IT OUT-->
-<!--                            <div hidden>-->
-<!--                                <label for="createdBy"></label>-->
-<!--                                <select name="user" id="createdBy" required>-->
-<!--                                    <option th:each="user : ${users}" th:value="${user.id}" th:text="${user.email}"-->
-<!--                                            th:selected="${#strings.equals(#authentication.getName(), user.email)}">-->
-<!--                                    </option>-->
-<!--                                </select>-->
-<!--                            </div>-->
-
                             <div class="col-lg-9">
                                 <div class="card mb-4">
                                     <label for="title" class="card-header">Title</label>
@@ -362,8 +344,6 @@
                     <div class="container-xl px-4">
                         <div class="text-end small">
                             <a href="/privacy" target="_blank">Privacy Policy</a>
-                            <!--&middot;-->
-                            <!--<a href="#!">Terms &amp; Conditions</a>-->
                         </div>
                     </div>
                 </footer>
