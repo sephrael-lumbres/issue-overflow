@@ -8,6 +8,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -22,6 +26,10 @@ class TemplateRulesTest {
 
     private static final Path TEMPLATES = Path.of("src/main/resources/templates");
     private static final Path STATIC = Path.of("src/main/resources/static");
+    private static final String BOOTSTRAP = "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js";
+    private static final String BOOTSTRAP_INTEGRITY = "sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p";
+    private static final String FONT_AWESOME = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/js/all.min.js";
+    private static final String FEATHER = "https://cdnjs.cloudflare.com/ajax/libs/feather-icons/4.28.0/feather.min.js";
 
     @Test
     void noDeadCommentedOutLinks() {
@@ -52,6 +60,26 @@ class TemplateRulesTest {
         assertThat(filesContaining(templates, "unpkg.com")).isEmpty();
         assertThat(filesContaining(templates, "cdn.jsdelivr.net/npm/showdown")).isEmpty();
         assertThat(filesContaining(templates, "cdn.jsdelivr.net/npm/simple-datatables")).isEmpty();
+    }
+
+    // Scripts from a CDN carry the hash of the exact file (Subresource Integrity), so the browser refuses a changed file
+    // instead of running it. Each library is one version with one hash, Bootstrap's as published in its documentation.
+    @Test
+    void everyCdnScriptIsPinnedWithAnIntegrityHash() {
+        Pattern externalTag = Pattern.compile("<(?:script|link)\\b[^>]*\\b(?:src|href)=\"(https://[^\"]+)\"[^>]*>");
+        Pattern integrity = Pattern.compile("integrity=\"(sha(?:384|512)-[A-Za-z0-9+/]+={0,2})\"");
+        Map<String, Set<String>> hashesByUrl = new TreeMap<>();
+
+        templates().forEach((template, text) -> externalTag.matcher(text).results().forEach(tag -> {
+            Matcher hash = integrity.matcher(tag.group());
+            assertThat(hash.find()).as(template + ": " + tag.group()).isTrue();
+            assertThat(tag.group()).as(template.toString()).contains("crossorigin=\"anonymous\"");
+            hashesByUrl.computeIfAbsent(tag.group(1), url -> new TreeSet<>()).add(hash.group(1));
+        }));
+
+        assertThat(hashesByUrl).containsOnlyKeys(BOOTSTRAP, FONT_AWESOME, FEATHER);
+        assertThat(hashesByUrl.values()).allSatisfy(hashes -> assertThat(hashes).hasSize(1));
+        assertThat(hashesByUrl.get(BOOTSTRAP)).containsExactly(BOOTSTRAP_INTEGRITY);
     }
 
     // Scripts and stylesheets the app serves itself (under /js, including the vendored libraries) exist.
