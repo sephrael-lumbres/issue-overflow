@@ -43,6 +43,17 @@ class TemplateRulesTest {
         assertThat(filesContaining(templates, "@next")).isEmpty();
     }
 
+    // The libraries that turn user Markdown into HTML (EasyMDE, Showdown) and the tables' library are served by the
+    // app, so no other site can change the code that handles user text.
+    @Test
+    void markdownAndTableLibrariesAreServedByTheApp() {
+        Map<Path, String> templates = templates();
+
+        assertThat(filesContaining(templates, "unpkg.com")).isEmpty();
+        assertThat(filesContaining(templates, "cdn.jsdelivr.net/npm/showdown")).isEmpty();
+        assertThat(filesContaining(templates, "cdn.jsdelivr.net/npm/simple-datatables")).isEmpty();
+    }
+
     // Scripts and stylesheets the app serves itself (under /js, including the vendored libraries) exist.
     @Test
     void everyLocalScriptAndStylesheetExists() {

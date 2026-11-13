@@ -77,22 +77,24 @@ class MarkdownSanitizingTest extends WebIntegrationTestBase {
         assertThat(page).contains("&lt;img src=x onerror=alert(1)&gt;").doesNotContain("<img src=x");
     }
 
-    // EasyMDE previews render with marked, which also passes HTML through. Every editor sanitizes its preview, and
-    // every page with an editor loads the sanitizer first and pins the EasyMDE version the option was checked on.
+    // Every editor sanitizes its preview and downloads nothing from other sites.
+    // Every editor page loads the sanitizer first and EasyMDE from the app.
     @Test
     void editorPreviewsAreSanitized() throws IOException {
         String editors = template("static/js/markdown.js");
 
         assertThat(count(editors, "new EasyMDE(")).isEqualTo(3);
         assertThat(count(editors, "renderingConfig: sanitizedPreview")).isEqualTo(3);
+        assertThat(count(editors, "spellChecker: false")).isEqualTo(3);
+        assertThat(count(editors, "autoDownloadFontAwesome: false")).isEqualTo(3);
         assertThat(editors).contains("sanitizerFunction: (renderedHTML) => sanitizeMarkdownHtml(renderedHTML)");
 
         for (String page : List.of("create-issue", "edit-issue", "issue-details")) {
             String source = template("templates/issues/" + page + ".html");
             assertThat(source).as(page)
-                    .contains("https://unpkg.com/easymde@2.21.0/dist/easymde.min.js")
-                    .contains("https://unpkg.com/easymde@2.21.0/dist/easymde.min.css")
-                    .doesNotContain("https://unpkg.com/easymde/");
+                    .contains("<script src=\"/js/vendor/easymde-2.21.0/easymde.min.js\"></script>")
+                    .contains("<link href=\"/js/vendor/easymde-2.21.0/easymde.min.css\" rel=\"stylesheet\" />")
+                    .doesNotContain("unpkg.com");
             assertThat(source.indexOf(PURIFY)).as(page).isPositive().isLessThan(source.indexOf(SANITIZER));
             assertThat(source.indexOf(SANITIZER)).as(page).isLessThan(source.indexOf("<script src=\"/js/markdown.js\"></script>"));
         }
