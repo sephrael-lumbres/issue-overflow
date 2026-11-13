@@ -54,6 +54,15 @@ class TemplateRulesTest {
         assertThat(filesContaining(templates(), "getElementById(\"popupAlerts\")")).isEmpty();
     }
 
+    // The profile picture's file picker and help text list every image type an upload accepts (UploadedFiles.imageType).
+    @Test
+    void profilePictureListsEveryAcceptedType() {
+        String profile = templates().get(Path.of("account-settings/account-profile.html"));
+
+        assertThat(profile).contains("accept=\"image/png, image/jpeg, image/gif, image/webp\"");
+        assertThat(profile).contains("PNG, JPEG, GIF or WebP, no larger than 5 MB");
+    }
+
     // A CDN's "latest" (or "next") moves under the page:
     // simple-datatables@latest jumped to a release that broke the tables. Every library is a fixed version.
     @Test

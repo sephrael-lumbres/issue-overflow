@@ -301,12 +301,12 @@
                                              class="img-account-profile rounded-circle mb-2" alt="">
 
                                         <!-- Profile picture help block-->
-                                        <div class="small font-italic text-muted mb-4">JPG or PNG no larger than 5 MB</div>
+                                        <div class="small font-italic text-muted mb-4">PNG, JPEG, GIF or WebP, no larger than 5 MB</div>
 
                                         <form th:action="@{'/storage/upload/' + ${user.id}}"
                                               method="post" enctype="multipart/form-data" action="#">
                                             <label for="files" class="form-label mb-4">
-                                                <input th:name="file" onchange="validateFileSize()" class="form-control" type="file" id="files" accept="image/png, image/jpeg">
+                                                <input th:name="file" onchange="validateFileSize()" class="form-control" type="file" id="files" accept="image/png, image/jpeg, image/gif, image/webp">
                                             </label>
                                             <!-- Profile picture upload button-->
                                             <button class="btn btn-primary" type="submit">Upload new image</button>
