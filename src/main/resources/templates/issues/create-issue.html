@@ -216,7 +216,7 @@
                     </header>
                     <!-- Main page content-->
                     <div class="container-fluid px-4">
-                        <div th:text="${issueFormError}" th:if="${issueFormError}" id="popupAlerts" class="alert alert-danger alert-dismissible fade show text-center" role="alert"></div>
+                        <div th:text="${issueFormError}" th:if="${issueFormError}" class="popup-alert alert alert-danger alert-dismissible fade show text-center" role="alert"></div>
                         <form action="#" th:action="@{/issues/new}" th:object="${issue}" method="post"
                               enctype="multipart/form-data" class="row gx-4">
                             <div class="col-lg-9">

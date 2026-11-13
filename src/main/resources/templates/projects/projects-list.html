@@ -235,15 +235,15 @@
                         </div>
 
                         <!-- Popup alerts -->
-                        <div th:text="${projectCreationSuccess}" th:if="${projectCreationSuccess}" id="popupAlerts" class="alert alert-success alert-dismissible fade show text-center mt-n1" role="alert"></div>
-                        <div th:text="${projectUpdateSuccess}" th:if="${projectUpdateSuccess}" id="popupAlerts" class="alert alert-success alert-dismissible fade show text-center mt-n1" role="alert"></div>
-                        <div th:text="${idNotUniqueToOrganization}" th:if="${idNotUniqueToOrganization}" id="popupAlerts" class="alert alert-danger alert-dismissible fade show text-center mt-n1" role="alert"></div>
-                        <div th:text="${projectNotFound}" th:if="${projectNotFound}" id="popupAlerts" class="alert alert-danger alert-dismissible fade show text-center mt-n1" role="alert"></div>
-                        <div th:text="${projectFormError}" th:if="${projectFormError}" id="popupAlerts" class="alert alert-danger alert-dismissible fade show text-center mt-n1" role="alert"></div>
+                        <div th:text="${projectCreationSuccess}" th:if="${projectCreationSuccess}" class="popup-alert alert alert-success alert-dismissible fade show text-center mt-n1" role="alert"></div>
+                        <div th:text="${projectUpdateSuccess}" th:if="${projectUpdateSuccess}" class="popup-alert alert alert-success alert-dismissible fade show text-center mt-n1" role="alert"></div>
+                        <div th:text="${idNotUniqueToOrganization}" th:if="${idNotUniqueToOrganization}" class="popup-alert alert alert-danger alert-dismissible fade show text-center mt-n1" role="alert"></div>
+                        <div th:text="${projectNotFound}" th:if="${projectNotFound}" class="popup-alert alert alert-danger alert-dismissible fade show text-center mt-n1" role="alert"></div>
+                        <div th:text="${projectFormError}" th:if="${projectFormError}" class="popup-alert alert alert-danger alert-dismissible fade show text-center mt-n1" role="alert"></div>
 
                         <!-- ALERT MESSAGE IF THE CURRENT USER HAS NOTIFICATIONS ENABLED BUT EMAIL IS NOT VERIFIED -->
-                        <div th:text="${verificationEmailSentSuccess}" th:if="${verificationEmailSentSuccess}" id="popupAlerts" class="alert alert-success alert-dismissible fade show text-center mt-n1" role="alert"></div>
-                        <div th:text="${verificationEmailSentError}" th:if="${verificationEmailSentError}" id="popupAlerts" class="alert alert-danger alert-dismissible fade show text-center mt-n1" role="alert"></div>
+                        <div th:text="${verificationEmailSentSuccess}" th:if="${verificationEmailSentSuccess}" class="popup-alert alert alert-success alert-dismissible fade show text-center mt-n1" role="alert"></div>
+                        <div th:text="${verificationEmailSentError}" th:if="${verificationEmailSentError}" class="popup-alert alert alert-danger alert-dismissible fade show text-center mt-n1" role="alert"></div>
                         <div th:if="${currentUser.isNotificationsEnabled() && !currentUser.isEmailVerified()}" class="alert alert-danger text-center mt-n2" role="alert">
                             <i data-feather="alert-triangle" class="feather-lg"></i>
                             Please verify email address to receive notifications. <form class="d-inline" method="post" th:action="@{/resend-verification-email}"><button type="submit" class="btn btn-link alert-link p-0 align-baseline">Resend verification email</button></form>.
@@ -409,12 +409,14 @@
     <script src="/js/vendor/simple-datatables-5.0.3/simple-datatables.js"></script>
     <script src="/js/simple-datatables.js"></script>
     <script type="text/javascript">
-        let buttonElement = document.createElement("button");
-        buttonElement.className = "btn-close";
-        buttonElement.setAttribute("data-bs-dismiss", "alert");
-        buttonElement.setAttribute("aria-label", "Close");
-        buttonElement.setAttribute("type", "button");
-        document.getElementById("popupAlerts").appendChild(buttonElement);
+        document.querySelectorAll(".popup-alert").forEach(alert => {
+            let buttonElement = document.createElement("button");
+            buttonElement.className = "btn-close";
+            buttonElement.setAttribute("data-bs-dismiss", "alert");
+            buttonElement.setAttribute("aria-label", "Close");
+            buttonElement.setAttribute("type", "button");
+            alert.appendChild(buttonElement);
+        });
 
         // makes every row in the Project table, clickable and goes to the Project Home page
         function rowClicked(value) {

@@ -226,7 +226,7 @@
                     </header>
                     <!-- Main page content -->
                     <div class="container-fluid px-4 mt-4">
-                        <div th:text="${commentError}" th:if="${commentError}" id="popupAlerts" class="alert alert-danger alert-dismissible fade show text-center" role="alert"></div>
+                        <div th:text="${commentError}" th:if="${commentError}" class="popup-alert alert alert-danger alert-dismissible fade show text-center" role="alert"></div>
                         <div class="card mb-4">
                             <div th:text="'[' + ${issue.issueKey} + '] ' + ${issue.title}" class="card-header"></div>
 

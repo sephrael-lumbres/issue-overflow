@@ -217,8 +217,8 @@
                     <div th:classappend="${!currentUser.getProjects().isEmpty()} ? 'mt-n3'" class="container-xl px-4">
 
                         <!-- Popup alerts -->
-                        <div th:text="${notificationsSuccess}" th:if="${notificationsSuccess}" id="popupAlerts" class="alert alert-success alert-dismissible fade show text-center mt-n1" role="alert"></div>
-                        <div th:text="${notificationsError}" th:if="${notificationsError}" id="popupAlerts" class="alert alert-danger alert-dismissible fade show text-center mt-n1" role="alert"></div>
+                        <div th:text="${notificationsSuccess}" th:if="${notificationsSuccess}" class="popup-alert alert alert-success alert-dismissible fade show text-center mt-n1" role="alert"></div>
+                        <div th:text="${notificationsError}" th:if="${notificationsError}" class="popup-alert alert alert-danger alert-dismissible fade show text-center mt-n1" role="alert"></div>
 
                         <!-- ALERT MESSAGE IF CURRENT USER IS NOT INVOLVED WITH ANY PROJECT -->
                         <div sec:authorize="hasAuthority('Project Manager')" th:if="${currentUser.getProjects().isEmpty()}" class="alert alert-danger text-center mt-n2" role="alert">
@@ -227,8 +227,8 @@
                         </div>
 
                         <!-- ALERT MESSAGE IF THE CURRENT USER HAS NOTIFICATIONS ENABLED BUT EMAIL IS NOT VERIFIED -->
-                        <div th:text="${verificationEmailSentSuccess}" th:if="${verificationEmailSentSuccess}" id="popupAlerts" class="alert alert-success alert-dismissible fade show text-center mt-n1" role="alert"></div>
-                        <div th:text="${verificationEmailSentError}" th:if="${verificationEmailSentError}" id="popupAlerts" class="alert alert-danger alert-dismissible fade show text-center mt-n1" role="alert"></div>
+                        <div th:text="${verificationEmailSentSuccess}" th:if="${verificationEmailSentSuccess}" class="popup-alert alert alert-success alert-dismissible fade show text-center mt-n1" role="alert"></div>
+                        <div th:text="${verificationEmailSentError}" th:if="${verificationEmailSentError}" class="popup-alert alert alert-danger alert-dismissible fade show text-center mt-n1" role="alert"></div>
                         <div th:if="${currentUser.isNotificationsEnabled() && !currentUser.isEmailVerified()}" class="alert alert-danger text-center mt-n2" role="alert">
                             <i data-feather="alert-triangle" class="feather-lg"></i>
                             Please verify email address to receive notifications. <form class="d-inline" method="post" th:action="@{/resend-verification-email}"><button type="submit" class="btn btn-link alert-link p-0 align-baseline">Resend verification email</button></form>.
@@ -432,12 +432,14 @@
             }
 
             // adds a Close button for popup alerts
-            let buttonElement = document.createElement("button");
-            buttonElement.className = "btn-close";
-            buttonElement.setAttribute("data-bs-dismiss", "alert");
-            buttonElement.setAttribute("aria-label", "Close");
-            buttonElement.setAttribute("type", "button");
-            document.getElementById("popupAlerts").appendChild(buttonElement);
+            document.querySelectorAll(".popup-alert").forEach(alert => {
+                let buttonElement = document.createElement("button");
+                buttonElement.className = "btn-close";
+                buttonElement.setAttribute("data-bs-dismiss", "alert");
+                buttonElement.setAttribute("aria-label", "Close");
+                buttonElement.setAttribute("type", "button");
+                alert.appendChild(buttonElement);
+            });
         </script>
     </body>
 </html>

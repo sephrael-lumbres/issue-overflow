@@ -47,6 +47,13 @@ class TemplateRulesTest {
         assertThat(filesContaining(templates(), "<tfoot")).isEmpty();
     }
 
+    // Alerts are found by class: they all had the same id, so the script that adds their close button found only the first one on the page.
+    @Test
+    void alertsDontShareAnId() {
+        assertThat(filesContaining(templates(), "id=\"popupAlerts\"")).isEmpty();
+        assertThat(filesContaining(templates(), "getElementById(\"popupAlerts\")")).isEmpty();
+    }
+
     // A CDN's "latest" (or "next") moves under the page:
     // simple-datatables@latest jumped to a release that broke the tables. Every library is a fixed version.
     @Test

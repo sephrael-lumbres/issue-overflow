@@ -219,9 +219,9 @@
                     <div class="container-fluid px-4">
 
                         <!-- Popup alerts -->
-                        <div th:text="${userUpdateSuccess}" th:if="${userUpdateSuccess}" id="popupAlerts" class="alert alert-success alert-dismissible fade show text-center mt-n1" role="alert"></div>
-                        <div th:text="${verificationEmailSentSuccess}" th:if="${verificationEmailSentSuccess}" id="popupAlerts" class="alert alert-success alert-dismissible fade show text-center mt-n1" role="alert"></div>
-                        <div th:text="${verificationEmailSentError}" th:if="${verificationEmailSentError}" id="popupAlerts" class="alert alert-danger alert-dismissible fade show text-center mt-n1" role="alert"></div>
+                        <div th:text="${userUpdateSuccess}" th:if="${userUpdateSuccess}" class="popup-alert alert alert-success alert-dismissible fade show text-center mt-n1" role="alert"></div>
+                        <div th:text="${verificationEmailSentSuccess}" th:if="${verificationEmailSentSuccess}" class="popup-alert alert alert-success alert-dismissible fade show text-center mt-n1" role="alert"></div>
+                        <div th:text="${verificationEmailSentError}" th:if="${verificationEmailSentError}" class="popup-alert alert alert-danger alert-dismissible fade show text-center mt-n1" role="alert"></div>
 
                         <!-- ALERT MESSAGE IF CURRENT USER IS NOT INVOLVED WITH ANY PROJECT -->
                         <div sec:authorize="hasAuthority('Project Manager')" th:if="${currentUser.getProjects().isEmpty()}" class="alert alert-danger text-center mt-n2" role="alert">
@@ -343,12 +343,14 @@
         <script src="/js/vendor/simple-datatables-5.0.3/simple-datatables.js"></script>
         <script src="/js/simple-datatables.js"></script>
         <script>
-            let buttonElement = document.createElement("button");
-            buttonElement.className = "btn-close";
-            buttonElement.setAttribute("data-bs-dismiss", "alert");
-            buttonElement.setAttribute("aria-label", "Close");
-            buttonElement.setAttribute("type", "button");
-            document.getElementById("popupAlerts").appendChild(buttonElement);
+            document.querySelectorAll(".popup-alert").forEach(alert => {
+                let buttonElement = document.createElement("button");
+                buttonElement.className = "btn-close";
+                buttonElement.setAttribute("data-bs-dismiss", "alert");
+                buttonElement.setAttribute("aria-label", "Close");
+                buttonElement.setAttribute("type", "button");
+                alert.appendChild(buttonElement);
+            });
         </script>
     </body>
 </html>
