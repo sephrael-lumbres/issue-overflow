@@ -326,12 +326,14 @@
                                         Progress Tracker
                                     </div>
                                     <div class="card-body">
-                                        <span th:each="project, list : ${currentUserProjects}">
-                                            <span th:text="${#numbers.formatPercent(#lists.size(issueRepository.findByProjectAndStatus(project, 'Closed')) / (project.issues.size() * 1.0), 1, 0)}" class="float-end fw-bold"></span>
-                                            <span th:text="${#lists.size(issueRepository.findByProjectAndStatus(project, 'Closed')) / (project.issues.size() * 1.0)}" class="projectProgressDecimal" hidden></span>
+                                        <!--/* the share of the project's issues that are Closed; 0 for a project without issues (it was 0/0, NaN) */-->
+                                        <span th:each="project, list : ${currentUserProjects}"
+                                              th:with="progress=${project.issues.isEmpty() ? 0.0 : #lists.size(issueRepository.findByProjectAndStatus(project, 'Closed')) / (project.issues.size() * 1.0)}">
+                                            <span th:text="${#numbers.formatPercent(progress, 1, 0)}" class="float-end fw-bold"></span>
+                                            <span th:text="${progress}" class="projectProgressDecimal" hidden></span>
                                             <h4 th:text="${project.name}" class="small"></h4>
                                             <div th:classappend="${!list.last} ? 'mb-4'" class="progress">
-                                                <div th:attrappend="style='width: ' + ${#numbers.formatPercent(#lists.size(issueRepository.findByProjectAndStatus(project, 'Closed')) / (project.issues.size() * 1.0), 1, 0)}"
+                                                <div th:attrappend="style='width: ' + ${#numbers.formatPercent(progress, 1, 0)}"
                                                      class="progress-bar projectProgressBar" role="progressbar" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">
                                                 </div>
                                             </div>
