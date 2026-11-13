@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -20,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class TemplateRulesTest {
 
     private static final Path TEMPLATES = Path.of("src/main/resources/templates");
+    private static final Path STATIC = Path.of("src/main/resources/static");
 
     @Test
     void noDeadCommentedOutLinks() {
@@ -29,6 +31,26 @@ class TemplateRulesTest {
         assertThat(filesContaining(templates, "github.com/sephraellumbres")).isEmpty();
         assertThat(filesContaining(templates, "Terms &amp; Conditions")).isEmpty();
         assertThat(filesContaining(templates, "30-40 HOURS")).isEmpty();
+    }
+
+    // A CDN's "latest" (or "next") moves under the page:
+    // simple-datatables@latest jumped to a release that broke the tables. Every library is a fixed version.
+    @Test
+    void noLibraryFollowsALatestTag() {
+        Map<Path, String> templates = templates();
+
+        assertThat(filesContaining(templates, "@latest")).isEmpty();
+        assertThat(filesContaining(templates, "@next")).isEmpty();
+    }
+
+    // Scripts and stylesheets the app serves itself (under /js, including the vendored libraries) exist.
+    @Test
+    void everyLocalScriptAndStylesheetExists() {
+        Pattern localFile = Pattern.compile("(?:src|href)=\"(/js/[^\"]+)\"");
+
+        templates().forEach((template, text) -> localFile.matcher(text).results()
+                .map(match -> match.group(1))
+                .forEach(file -> assertThat(STATIC.resolve(file.substring(1))).as(template + " loads " + file).isRegularFile()));
     }
 
     // Every template's path (relative to the templates folder) and its text.
