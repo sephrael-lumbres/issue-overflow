@@ -290,15 +290,6 @@
                                         <th sec:authorize="hasAuthority('Project Manager')" class="align-middle text-center">Actions</th>
                                     </tr>
                                     </thead>
-                                    <tfoot>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Email</th>
-                                        <th>Role</th>
-                                        <th>Projects</th>
-                                        <th sec:authorize="hasAuthority('Project Manager')">Actions</th>
-                                    </tr>
-                                    </tfoot>
                                     <tbody>
                                     <tr th:each="user: ${listUsers}">
                                         <td class="align-middle">

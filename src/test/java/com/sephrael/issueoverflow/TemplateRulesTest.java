@@ -41,6 +41,12 @@ class TemplateRulesTest {
         assertThat(filesContaining(templates, "30-40 HOURS")).isEmpty();
     }
 
+    // The tables repeated their header row at the bottom; their headers are only at the top.
+    @Test
+    void tablesHaveNoFooterRow() {
+        assertThat(filesContaining(templates(), "<tfoot")).isEmpty();
+    }
+
     // A CDN's "latest" (or "next") moves under the page:
     // simple-datatables@latest jumped to a release that broke the tables. Every library is a fixed version.
     @Test

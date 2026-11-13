@@ -406,14 +406,6 @@
                                                     <th class="align-middle text-center">Status</th>
                                                 </tr>
                                                 </thead>
-                                                <tfoot>
-                                                <tr>
-                                                    <th>Key</th>
-                                                    <th>Title</th>
-                                                    <th>Priority</th>
-                                                    <th>Status</th>
-                                                </tr>
-                                                </tfoot>
                                                 <tbody>
                                                 <tr th:each="issue : ${assignedToCurrentUser}" style="cursor: pointer;"
                                                     th:href="@{'/issues/' + ${issue.project.identifier} + '/view/' + ${issue.issueKey}}"
@@ -450,14 +442,6 @@
                                                     <th class="align-middle text-center">Status</th>
                                                 </tr>
                                                 </thead>
-                                                <tfoot>
-                                                <tr>
-                                                    <th>Key</th>
-                                                    <th>Title</th>
-                                                    <th>Priority</th>
-                                                    <th>Status</th>
-                                                </tr>
-                                                </tfoot>
                                                 <tbody>
                                                 <tr th:each="issue : ${createdByCurrentUser}" style="cursor: pointer;"
                                                     th:href="@{'/issues/' + ${issue.project.identifier} + '/view/' + ${issue.issueKey}}"
@@ -576,15 +560,6 @@
                                         <th class="align-middle text-center" sec:authorize="hasAuthority('Project Manager')">Actions</th>
                                     </tr>
                                     </thead>
-                                    <tfoot>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Email</th>
-                                        <th>Role</th>
-                                        <th>Projects</th>
-                                        <th sec:authorize="hasAuthority('Project Manager')">Actions</th>
-                                    </tr>
-                                    </tfoot>
                                     <tbody>
                                     <tr th:each="user, list : ${usersByOrganization}">
                                         <td class="align-middle">
