@@ -7,11 +7,11 @@
         <meta name="description" content="" />
         <meta name="author" content="" />
         <title>List of Projects - Issue Overflow</title>
-        <link href="https://cdn.jsdelivr.net/npm/simple-datatables@latest/dist/style.css" rel="stylesheet" />
+        <link href="/js/vendor/simple-datatables-5.0.3/style.css" rel="stylesheet" />
         <link href="/css/styles.css" rel="stylesheet" />
         <link rel="icon" type="image/x-icon" href="/assets/img/swirl-logo.png" />
-        <script data-search-pseudo-elements defer src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/js/all.min.js" crossorigin="anonymous"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/feather-icons/4.28.0/feather.min.js" crossorigin="anonymous"></script>
+        <script data-search-pseudo-elements defer src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/js/all.min.js" integrity="sha512-RXf+QSDCUQs5uwRKaDoXt55jygZZm2V++WUZduaU/Ui/9EGp3f/2KZVahFZBKGH0s774sd3HmrhUy+SgOFQLVQ==" crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/feather-icons/4.28.0/feather.min.js" integrity="sha512-7x3zila4t2qNycrtZ31HO0NnJr8kg2VI67YLoRSyi9hGhRN66FHYWr7Axa9Y1J9tGYHVBPqIjSE1ogHrJTz51g==" crossorigin="anonymous"></script>
     </head>
     <body class="nav-fixed">
         <nav class="topnav navbar navbar-expand shadow justify-content-between justify-content-sm-start navbar-primary bg-white" id="sidenavAccordion">
@@ -235,15 +235,15 @@
                         </div>
 
                         <!-- Popup alerts -->
-                        <div th:text="${projectCreationSuccess}" th:if="${projectCreationSuccess}" id="popupAlerts" class="alert alert-success alert-dismissible fade show text-center mt-n1" role="alert"></div>
-                        <div th:text="${projectUpdateSuccess}" th:if="${projectUpdateSuccess}" id="popupAlerts" class="alert alert-success alert-dismissible fade show text-center mt-n1" role="alert"></div>
-                        <div th:text="${idNotUniqueToOrganization}" th:if="${idNotUniqueToOrganization}" id="popupAlerts" class="alert alert-danger alert-dismissible fade show text-center mt-n1" role="alert"></div>
-                        <div th:text="${projectNotFound}" th:if="${projectNotFound}" id="popupAlerts" class="alert alert-danger alert-dismissible fade show text-center mt-n1" role="alert"></div>
-                        <div th:text="${projectFormError}" th:if="${projectFormError}" id="popupAlerts" class="alert alert-danger alert-dismissible fade show text-center mt-n1" role="alert"></div>
+                        <div th:text="${projectCreationSuccess}" th:if="${projectCreationSuccess}" class="popup-alert alert alert-success alert-dismissible fade show text-center mt-n1" role="alert"></div>
+                        <div th:text="${projectUpdateSuccess}" th:if="${projectUpdateSuccess}" class="popup-alert alert alert-success alert-dismissible fade show text-center mt-n1" role="alert"></div>
+                        <div th:text="${idNotUniqueToOrganization}" th:if="${idNotUniqueToOrganization}" class="popup-alert alert alert-danger alert-dismissible fade show text-center mt-n1" role="alert"></div>
+                        <div th:text="${projectNotFound}" th:if="${projectNotFound}" class="popup-alert alert alert-danger alert-dismissible fade show text-center mt-n1" role="alert"></div>
+                        <div th:text="${projectFormError}" th:if="${projectFormError}" class="popup-alert alert alert-danger alert-dismissible fade show text-center mt-n1" role="alert"></div>
 
                         <!-- ALERT MESSAGE IF THE CURRENT USER HAS NOTIFICATIONS ENABLED BUT EMAIL IS NOT VERIFIED -->
-                        <div th:text="${verificationEmailSentSuccess}" th:if="${verificationEmailSentSuccess}" id="popupAlerts" class="alert alert-success alert-dismissible fade show text-center mt-n1" role="alert"></div>
-                        <div th:text="${verificationEmailSentError}" th:if="${verificationEmailSentError}" id="popupAlerts" class="alert alert-danger alert-dismissible fade show text-center mt-n1" role="alert"></div>
+                        <div th:text="${verificationEmailSentSuccess}" th:if="${verificationEmailSentSuccess}" class="popup-alert alert alert-success alert-dismissible fade show text-center mt-n1" role="alert"></div>
+                        <div th:text="${verificationEmailSentError}" th:if="${verificationEmailSentError}" class="popup-alert alert alert-danger alert-dismissible fade show text-center mt-n1" role="alert"></div>
                         <div th:if="${currentUser.isNotificationsEnabled() && !currentUser.isEmailVerified()}" class="alert alert-danger text-center mt-n2" role="alert">
                             <i data-feather="alert-triangle" class="feather-lg"></i>
                             Please verify email address to receive notifications. <form class="d-inline" method="post" th:action="@{/resend-verification-email}"><button type="submit" class="btn btn-link alert-link p-0 align-baseline">Resend verification email</button></form>.
@@ -260,14 +260,6 @@
                                             <th class="align-middle text-center">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tfoot>
-                                        <tr>
-                                            <th>Project Name</th>
-                                            <th>Total Members</th>
-                                            <th>Created</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </tfoot>
                                     <tbody>
                                         <tr th:each="project : ${currentUser.getProjects()}">
                                             <!-- Project Name -->
@@ -411,18 +403,20 @@
                 </footer>
             </div>
         </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
     <script src="/js/scripts.js"></script>
     <script src="/js/confirm-submit.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/simple-datatables@latest" crossorigin="anonymous"></script>
+    <script src="/js/vendor/simple-datatables-5.0.3/simple-datatables.js"></script>
     <script src="/js/simple-datatables.js"></script>
     <script type="text/javascript">
-        let buttonElement = document.createElement("button");
-        buttonElement.className = "btn-close";
-        buttonElement.setAttribute("data-bs-dismiss", "alert");
-        buttonElement.setAttribute("aria-label", "Close");
-        buttonElement.setAttribute("type", "button");
-        document.getElementById("popupAlerts").appendChild(buttonElement);
+        document.querySelectorAll(".popup-alert").forEach(alert => {
+            let buttonElement = document.createElement("button");
+            buttonElement.className = "btn-close";
+            buttonElement.setAttribute("data-bs-dismiss", "alert");
+            buttonElement.setAttribute("aria-label", "Close");
+            buttonElement.setAttribute("type", "button");
+            alert.appendChild(buttonElement);
+        });
 
         // makes every row in the Project table, clickable and goes to the Project Home page
         function rowClicked(value) {

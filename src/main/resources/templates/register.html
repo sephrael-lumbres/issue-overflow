@@ -9,8 +9,8 @@
         <title>Register - Issue Overflow</title>
         <link href="/css/styles.css" rel="stylesheet" />
         <link rel="icon" type="image/x-icon" href="/assets/img/swirl-logo.png" />
-        <script data-search-pseudo-elements defer src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/js/all.min.js" crossorigin="anonymous"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/feather-icons/4.28.0/feather.min.js" crossorigin="anonymous"></script>
+        <script data-search-pseudo-elements defer src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/js/all.min.js" integrity="sha512-RXf+QSDCUQs5uwRKaDoXt55jygZZm2V++WUZduaU/Ui/9EGp3f/2KZVahFZBKGH0s774sd3HmrhUy+SgOFQLVQ==" crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/feather-icons/4.28.0/feather.min.js" integrity="sha512-7x3zila4t2qNycrtZ31HO0NnJr8kg2VI67YLoRSyi9hGhRN66FHYWr7Axa9Y1J9tGYHVBPqIjSE1ogHrJTz51g==" crossorigin="anonymous"></script>
     </head>
     <body class="bg-gradient-primary-to-secondary">
         <div id="layoutAuthentication">
@@ -19,7 +19,7 @@
                     <div class="container-xl px-4">
                         <div class="row justify-content-center">
                             <div class="col-xl-8 col-lg-9">
-                                <div th:text="${registrationError}" th:if="${registrationError}" id="popupAlerts" class="alert alert-danger alert-dismissible fade show text-center mt-4" role="alert"></div>
+                                <div th:text="${registrationError}" th:if="${registrationError}" class="popup-alert alert alert-danger alert-dismissible fade show text-center mt-4" role="alert"></div>
                                 <!-- Social registration form-->
                                 <div class="card my-5">
                                     <div class="card-body p-5 text-center">
@@ -115,7 +115,7 @@
             </div>
         </div>
         <script src="/js/scripts.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
         <script>
             let password = document.getElementById("password"),
                 confirm_password = document.getElementById("confirmPassword");

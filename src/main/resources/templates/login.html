@@ -9,8 +9,8 @@
         <title>Login - Issue Overflow</title>
         <link href="/css/styles.css" rel="stylesheet" />
         <link rel="icon" type="image/x-icon" href="/assets/img/swirl-logo.png" />
-        <script data-search-pseudo-elements defer src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/js/all.min.js" crossorigin="anonymous"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/feather-icons/4.28.0/feather.min.js" crossorigin="anonymous"></script>
+        <script data-search-pseudo-elements defer src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/js/all.min.js" integrity="sha512-RXf+QSDCUQs5uwRKaDoXt55jygZZm2V++WUZduaU/Ui/9EGp3f/2KZVahFZBKGH0s774sd3HmrhUy+SgOFQLVQ==" crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/feather-icons/4.28.0/feather.min.js" integrity="sha512-7x3zila4t2qNycrtZ31HO0NnJr8kg2VI67YLoRSyi9hGhRN66FHYWr7Axa9Y1J9tGYHVBPqIjSE1ogHrJTz51g==" crossorigin="anonymous"></script>
     </head>
     <body class="bg-gradient-primary-to-secondary">
         <div id="layoutAuthentication">
@@ -20,11 +20,11 @@
                         <div class="row justify-content-center">
                             <div class="col-xl-5 col-lg-6 col-md-8 col-sm-11">
 
-                                <div th:text="${emailChangeSuccess}" th:if="${emailChangeSuccess}" id="popupAlerts" class="alert alert-success alert-dismissible fade show text-center mt-4" role="alert"></div>
-                                <div th:text="${success}" th:if="${success}" id="popupAlerts" class="alert alert-success alert-dismissible fade show text-center mt-4" role="alert"></div>
-                                <div th:text="${registered}" th:if="${registered}" id="popupAlerts" class="alert alert-success alert-dismissible fade show text-center mt-4" role="alert"></div>
-                                <div th:text="${accountDeletionSuccess}" th:if="${accountDeletionSuccess}" id="popupAlerts" class="alert alert-success alert-dismissible fade show text-center mt-4" role="alert"></div>
-                                <div th:text="${error}" th:if="${error}" id="popupAlerts" class="alert alert-danger alert-dismissible fade show text-center mt-4" role="alert"></div>
+                                <div th:text="${emailChangeSuccess}" th:if="${emailChangeSuccess}" class="popup-alert alert alert-success alert-dismissible fade show text-center mt-4" role="alert"></div>
+                                <div th:text="${success}" th:if="${success}" class="popup-alert alert alert-success alert-dismissible fade show text-center mt-4" role="alert"></div>
+                                <div th:text="${registered}" th:if="${registered}" class="popup-alert alert alert-success alert-dismissible fade show text-center mt-4" role="alert"></div>
+                                <div th:text="${accountDeletionSuccess}" th:if="${accountDeletionSuccess}" class="popup-alert alert alert-success alert-dismissible fade show text-center mt-4" role="alert"></div>
+                                <div th:text="${error}" th:if="${error}" class="popup-alert alert alert-danger alert-dismissible fade show text-center mt-4" role="alert"></div>
                                 <div th:if="${param.expired}" class="alert alert-warning text-center mt-4" role="alert">Your role or account changed since you logged in. Please log in again.</div>
 
                                 <!-- Social login form-->
@@ -94,15 +94,17 @@
                 </footer>
             </div>
         </div>
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
         <script src="/js/scripts.js"></script>
         <script>
-                let buttonElement = document.createElement("button");
-                buttonElement.className = "btn-close";
-                buttonElement.setAttribute("data-bs-dismiss", "alert");
-                buttonElement.setAttribute("aria-label", "Close");
-                buttonElement.setAttribute("type", "button");
-                document.getElementById("popupAlerts").appendChild(buttonElement);
+                document.querySelectorAll(".popup-alert").forEach(alert => {
+                    let buttonElement = document.createElement("button");
+                    buttonElement.className = "btn-close";
+                    buttonElement.setAttribute("data-bs-dismiss", "alert");
+                    buttonElement.setAttribute("aria-label", "Close");
+                    buttonElement.setAttribute("type", "button");
+                    alert.appendChild(buttonElement);
+                });
         </script>
     </body>
 </html>
