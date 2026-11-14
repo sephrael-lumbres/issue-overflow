@@ -1,5 +1,6 @@
 package com.sephrael.issueoverflow.controller.form;
 
+import com.sephrael.issueoverflow.service.Emails;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -13,4 +14,9 @@ public record RegistrationForm(
         @NotBlank @Size(max = 255) String lastName,
         @NotBlank @Email @Size(max = 255) String email,
         String password) {
+
+    // addresses are compared without case, so the account keeps the address in lower case
+    public RegistrationForm {
+        email = Emails.normalize(email);
+    }
 }

@@ -1,18 +1,22 @@
 package com.sephrael.issueoverflow;
 
+
 import com.sephrael.issueoverflow.entity.Role;
 import com.sephrael.issueoverflow.repository.RoleRepository;
+import com.sephrael.issueoverflow.repository.UserRepository;
 import com.sephrael.issueoverflow.support.RepositoryTestBase;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationInfo;
 import org.flywaydb.core.api.MigrationState;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 
 // Flyway owns the schema and Hibernate only validates it, so a context that starts at all proves the mappings match
@@ -25,13 +29,16 @@ class SchemaMigrationTest extends RepositoryTestBase {
     private JdbcTemplate jdbcTemplate;
     @Autowired
     private RoleRepository roleRepository;
+    @Autowired
+    private UserRepository userRepository;
 
     @Test
     void migrationsCreateTheSchemaIncludingAuditTables() {
         assertThat(flyway.info().applied())
                 .extracting(info -> info.getVersion().getVersion(), MigrationInfo::getState)
                 .containsExactly(tuple("1", MigrationState.SUCCESS), tuple("2", MigrationState.SUCCESS), tuple("3", MigrationState.SUCCESS),
-                        tuple("4", MigrationState.SUCCESS), tuple("5", MigrationState.SUCCESS), tuple("6", MigrationState.SUCCESS));
+                        tuple("4", MigrationState.SUCCESS), tuple("5", MigrationState.SUCCESS), tuple("6", MigrationState.SUCCESS),
+                        tuple("7", MigrationState.SUCCESS));
 
         String sql = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'";
         List<String> tables = jdbcTemplate.queryForList(sql, String.class);
@@ -51,6 +58,15 @@ class SchemaMigrationTest extends RepositoryTestBase {
                 "project.name", "project.identifier", "project.color",
                 "issue.user_id", "issue.project_id",
                 "comment.user_id", "comment.issue_id");
+    }
+
+    // Two addresses that differ only in case are one mailbox, so the database refuses the second (V7).
+    @Test
+    void addressesDifferingOnlyInCaseCantBothBeStored() {
+        userRepository.saveAndFlush(newUser("ada-case@example.test", "Ada", "Lovelace"));
+
+        assertThatThrownBy(() -> userRepository.saveAndFlush(newUser("ADA-CASE@example.test", "Ada", "Lovelace")))
+                .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
