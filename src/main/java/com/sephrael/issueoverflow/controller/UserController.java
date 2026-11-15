@@ -8,6 +8,7 @@ import com.sephrael.issueoverflow.entity.Role;
 import com.sephrael.issueoverflow.entity.User;
 import com.sephrael.issueoverflow.repository.*;
 import com.sephrael.issueoverflow.service.AWSFileService;
+import com.sephrael.issueoverflow.service.Emails;
 import com.sephrael.issueoverflow.service.TokenGenerator;
 import com.sephrael.issueoverflow.service.UserService;
 import jakarta.validation.Valid;
@@ -107,6 +108,7 @@ public class UserController {
         // The page says the same thing whether or not the address has an account, so it can't be used to find out who
         // is registered. The email is sent after the response (EmailSender), so the answer doesn't wait for the mail
         // server, and a failed send is logged rather than shown.
+        email = Emails.normalize(email);
         if(userRepository.findByEmail(email) != null) {
             String token = TokenGenerator.newToken();
             userService.updateResetPasswordToken(token, email);

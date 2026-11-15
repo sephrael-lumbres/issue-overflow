@@ -17,7 +17,8 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findByEmail(username);
+        // the login form's address in any case finds the account, which stores it in lower case
+        User user = userRepository.findByEmail(Emails.normalize(username));
 
         if(user == null) {
             throw new UsernameNotFoundException("User not found");

@@ -26,6 +26,7 @@ class PrivacyPolicyPageTest extends WebIntegrationTestBase {
                 .contains("JSESSIONID")
                 .contains("Amazon Web Services (S3)")
                 .contains("stored in the United States")
+                .contains("in memory for up to an hour")
                 .doesNotContainIgnoringCase("termly")
                 .doesNotContain("/cookie-policy");
     }

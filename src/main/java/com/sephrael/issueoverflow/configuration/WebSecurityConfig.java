@@ -1,6 +1,7 @@
 package com.sephrael.issueoverflow.configuration;
 
 import com.sephrael.issueoverflow.repository.UserRepository;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -10,6 +11,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
 import org.springframework.security.web.savedrequest.RequestCache;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
@@ -19,6 +21,7 @@ import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 
 @Configuration
 @EnableWebSecurity
+@EnableConfigurationProperties(RateLimitSettings.class)
 public class WebSecurityConfig {
 
     // Spring Security builds the DaoAuthenticationProvider from the single
@@ -29,7 +32,12 @@ public class WebSecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, UserRepository userRepository) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, UserRepository userRepository,
+                                                   RateLimitSettings rateLimitSettings) throws Exception {
+        // posts to the forms that repeated tries can abuse are counted before login or any controller handles them
+        if(rateLimitSettings.enabled())
+            http.addFilterBefore(new RateLimitFilter(rateLimitSettings), UsernamePasswordAuthenticationFilter.class);
+
         http
             // logs out sessions whose role or account changed since login, before the rules below see them
             .addFilterBefore(new StaleSessionFilter(userRepository), AuthorizationFilter.class)

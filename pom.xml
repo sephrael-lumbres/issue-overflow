@@ -79,6 +79,12 @@
 			<artifactId>spring-data-envers</artifactId>
 		</dependency>
 
+		<!--  RATE LIMITS (in-memory counters; Spring Boot manages the version)  -->
+		<dependency>
+			<groupId>com.github.ben-manes.caffeine</groupId>
+			<artifactId>caffeine</artifactId>
+		</dependency>
+
 		<!-- AWS S3 FILE STORAGE (AWS SDK v2, synchronous client only) -->
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
