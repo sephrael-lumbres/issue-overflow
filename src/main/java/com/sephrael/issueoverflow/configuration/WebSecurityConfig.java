@@ -12,6 +12,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
 import org.springframework.security.web.savedrequest.RequestCache;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
@@ -87,7 +88,14 @@ public class WebSecurityConfig {
                 // every other request keeps the login redirect, whatever its Accept header
                 .defaultAuthenticationEntryPointFor(new LoginUrlAuthenticationEntryPoint("/login"), AnyRequestMatcher.INSTANCE)
                 .accessDeniedHandler(ApiSecurityErrors.accessDeniedHandler()))
-            .requestCache(cache -> cache.requestCache(pageRequestCache()));
+            .requestCache(cache -> cache.requestCache(pageRequestCache()))
+            // added to Spring Security's default headers (nosniff, X-Frame-Options DENY, no-cache, and HSTS on HTTPS).
+            // The policy limits plugins, <base>, form targets and framing; pages keep their inline scripts and CDN files.
+            .headers(headers -> headers
+                .contentSecurityPolicy(csp -> csp
+                    .policyDirectives("object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"))
+                .referrerPolicy(referrer -> referrer
+                    .policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)));
 
         return http.build();
     }
