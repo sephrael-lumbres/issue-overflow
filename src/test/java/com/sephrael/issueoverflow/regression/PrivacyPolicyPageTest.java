@@ -27,6 +27,7 @@ class PrivacyPolicyPageTest extends WebIntegrationTestBase {
                 .contains("Amazon Web Services (S3)")
                 .contains("stored in the United States")
                 .contains("in memory for up to an hour")
+                .contains("delivered by Resend")
                 .doesNotContainIgnoringCase("termly")
                 .doesNotContain("/cookie-policy");
     }
