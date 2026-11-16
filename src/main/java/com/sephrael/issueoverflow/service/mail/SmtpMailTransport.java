@@ -2,6 +2,7 @@ package com.sephrael.issueoverflow.service.mail;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.mail.MailPreparationException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -10,9 +11,10 @@ import org.springframework.stereotype.Component;
 import java.io.UnsupportedEncodingException;
 
 /**
- * Sends email through Spring's {@link JavaMailSender} (spring.mail.*).
+ * Sends email through Spring's {@link JavaMailSender} (spring.mail.*), unless app.mail.transport names another transport.
  */
 @Component
+@ConditionalOnProperty(name = "app.mail.transport", havingValue = "smtp", matchIfMissing = true)
 public class SmtpMailTransport implements MailTransport {
 
     private final JavaMailSender mailSender;
