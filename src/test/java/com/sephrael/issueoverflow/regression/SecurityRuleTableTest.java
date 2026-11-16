@@ -68,6 +68,7 @@ class SecurityRuleTableTest extends WebIntegrationTestBase {
                 row("/js/scripts.js",                                     Y, Y, Y, Y, Y),
                 row("/assets/img/swirl-logo.png",                         Y, Y, Y, Y, Y),
                 row("/css/styles.css",                                    Y, Y, Y, Y, Y),
+                row("/actuator/health",                                   Y, Y, Y, Y, Y),
 
                 // Project Manager only
                 row("/users/edit/1",                                      N, N, N, N, Y),

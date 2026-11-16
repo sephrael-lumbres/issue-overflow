@@ -49,6 +49,8 @@ public class WebSecurityConfig {
                 .requestMatchers("/getting-started", "/getting-started/*", "/knowledge-base/**", "/contact-us/**").permitAll()
                 .requestMatchers("/reset-password", "/change-password*", "/verify-email*").permitAll()
                 .requestMatchers("/error", "/js/**", "/assets/**", "/css/**").permitAll()
+                // the deployment's health check: UP or DOWN, with no details
+                .requestMatchers("/actuator/health").permitAll()
 
                 // Update and Removal operations on Users allowed only to Project Managers
                 .requestMatchers("/users/edit/*", "/users/update/*", "/users/remove/**").hasAuthority("Project Manager")
