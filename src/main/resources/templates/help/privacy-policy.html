@@ -147,10 +147,13 @@
                         <ul>
                             <li>Members of your organization see your name, email address, role and profile picture. Issues, comments
                                 and attachments are visible to the members of the project they belong to.</li>
-                            <li>The services that host the app and its database and that deliver its email store or handle data on its
-                                behalf. Attachments and profile pictures are stored with Amazon Web Services (S3). Email is delivered
-                                by Resend, which keeps a copy of each email for up to 30 days. Everything is stored in the United
-                                States.</li>
+                            <li>The services that run the app store or handle data on its behalf. Railway hosts the app and its
+                                database, and attachments and profile pictures are stored with Amazon Web Services (S3). Email is
+                                delivered by Resend, which keeps a copy of each email for up to 30 days. Railway also logs each request
+                                to the app, with its IP address, for a limited time. The app, its database and its files are stored in
+                                the United States.</li>
+                            <li>Email sent to <a href="mailto:support@issueoverflow.app">support@issueoverflow.app</a>, including
+                                Contact Us messages, is forwarded by Cloudflare to a Gmail mailbox hosted by Google.</li>
                             <li>If the law requires it, data may be shared to answer a valid legal request.</li>
                         </ul>
 
@@ -174,8 +177,10 @@
                             (Account &gt; Security) deletes your account, the issues you created, your comments and the files you
                             uploaded. If you were the last member of your organization, the organization and its projects are deleted
                             too. The change history can keep earlier values, including names and email addresses, after the record
-                            they belong to is deleted. Backups, if any, expire on the hosting provider's schedule. To have anything
-                            that remains removed, email <a href="mailto:support@issueoverflow.app">support@issueoverflow.app</a>.</p>
+                            they belong to is deleted. The app schedules no database backups. The hosting provider may keep a
+                            short-lived copy while it maintains the database, and a copy taken before a risky update is deleted once
+                            the update is checked. To have anything that remains removed, email
+                            <a href="mailto:support@issueoverflow.app">support@issueoverflow.app</a>.</p>
 
                         <h5 class="mt-4">Changes</h5>
                         <p class="mb-0">If this page changes, the date at the top changes with it.</p>
