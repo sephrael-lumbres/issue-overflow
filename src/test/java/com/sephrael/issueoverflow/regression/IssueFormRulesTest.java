@@ -97,6 +97,21 @@ class IssueFormRulesTest extends WebIntegrationTestBase {
                 file.getIssue() != null && file.getIssue().getId().equals(fixture.issue.getId()));
     }
 
+    // a post without a files part (the form always sends one) used to save the issue and then fail with a 500
+    @Test
+    void anIssuePostedWithoutAFilesPartIsCreated() throws Exception {
+        Fixture fixture = createFixture();
+        MockHttpSession session = login(fixture.projectManager.getEmail());
+
+        mockMvc.perform(post("/issues/new").session(session).with(csrf())
+                        .param("title", "Created without a files part")
+                        .param("project", fixture.project.getId().toString())
+                        .param("assignedTo", " "))
+                .andExpect(status().is3xxRedirection());
+
+        assertThat(issueRepository.findByProject(fixture.project)).hasSize(2);
+    }
+
     private User projectDeveloper(Fixture fixture) {
         User developer = createUser(fixture.organization, "Developer");
         fixture.project.addUser(developer);

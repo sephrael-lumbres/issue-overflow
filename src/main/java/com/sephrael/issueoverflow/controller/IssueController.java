@@ -179,8 +179,8 @@ public class IssueController {
 
         issueService.save(issue);
 
-        // if 'Attach File(s)' Field is NOT empty, they are uploaded to the DB and are CONNECTED to the requested 'Issue'
-        if(!files[0].isEmpty()) {
+        // if 'Attach File(s)' Field is NOT null AND NOT empty, they are uploaded to the DB and are CONNECTED to the requested 'Issue'
+        if(files != null && !files[0].isEmpty()) {
             for (MultipartFile multipartFile : files) {
                 awsFileService.uploadFile(multipartFile, currentUser, issue, false);
             }
