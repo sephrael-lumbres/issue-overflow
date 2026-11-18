@@ -146,7 +146,7 @@ public class IssueController {
     @PostMapping(value = "/new")
     public String saveNewIssue(@Valid IssueForm form, BindingResult bindingResult, Principal principal,
                                @RequestParam(value = "files", required = false) MultipartFile[] files,
-                               RedirectAttributes redirectAttributes) {
+                               RedirectAttributes redirectAttributes, Authentication authentication) {
         User currentUser = userRepository.findByEmail(principal.getName());
         Organization currentOrganization = currentUser.getOrganization();
 
@@ -158,6 +158,10 @@ public class IssueController {
             redirectAttributes.addFlashAttribute("issueFormError", ISSUE_FORM_ERROR);
             return "redirect:/issues/" + project.getIdentifier() + "/new";
         }
+
+        // the create form offers Closed to Project Managers and Admins only
+        if("Closed".equals(form.status()) && !isManagerOrAdmin(authentication))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
 
         Issue issue = new Issue();
         copyFormFields(form, issue);
@@ -175,8 +179,8 @@ public class IssueController {
 
         issueService.save(issue);
 
-        // if 'Attach File(s)' Field is NOT empty, they are uploaded to the DB and are CONNECTED to the requested 'Issue'
-        if(!files[0].isEmpty()) {
+        // if 'Attach File(s)' Field is NOT null AND NOT empty, they are uploaded to the DB and are CONNECTED to the requested 'Issue'
+        if(files != null && !files[0].isEmpty()) {
             for (MultipartFile multipartFile : files) {
                 awsFileService.uploadFile(multipartFile, currentUser, issue, false);
             }
@@ -191,7 +195,7 @@ public class IssueController {
     public String updateIssue(@RequestParam("id") Long id, @Valid IssueForm form, BindingResult bindingResult, Principal principal,
                               @RequestParam(value = "files", required = false) MultipartFile[] files,
                               @RequestParam(value = "isAttachFileForm", required = false) boolean isAttachFileForm,
-                              RedirectAttributes redirectAttributes) {
+                              RedirectAttributes redirectAttributes, Authentication authentication) {
         User currentUser = userRepository.findByEmail(principal.getName());
         Organization currentOrganization = currentUser.getOrganization();
 
@@ -203,6 +207,18 @@ public class IssueController {
 
         if(previousIssue == null || !OrganizationScope.isMember(currentUser, previousIssue.getProject()))
             throw OrganizationScope.notFound();
+
+        // the edit page's rules apply to the edit form: only the author, a Project Manager or an Admin may edit, and
+        // only the last two may close the issue. Every Developer member may attach files, as the issue page offers.
+        if(!isAttachFileForm) {
+            boolean isManagerOrAdmin = isManagerOrAdmin(authentication);
+
+            if(!Objects.equals(previousIssue.getUser().getId(), currentUser.getId()) && !isManagerOrAdmin)
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+
+            if("Closed".equals(form.status()) && !"Closed".equals(previousIssue.getStatus()) && !isManagerOrAdmin)
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
 
         // the attach-file form sends only the id and the files, so the other fields are checked only for the edit form
         if(!isAttachFileForm && bindingResult.hasErrors()) {
@@ -397,5 +413,11 @@ public class IssueController {
             throw OrganizationScope.notFound();
 
         return assignee;
+    }
+
+    // Closed is offered to Project Managers and Admins only, on the create and edit forms and the status buttons
+    private static boolean isManagerOrAdmin(Authentication authentication) {
+        return authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("Project Manager") || a.getAuthority().equals("Admin"));
     }
 }
