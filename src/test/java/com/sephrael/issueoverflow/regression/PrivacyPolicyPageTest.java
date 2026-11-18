@@ -28,6 +28,11 @@ class PrivacyPolicyPageTest extends WebIntegrationTestBase {
                 .contains("stored in the United States")
                 .contains("in memory for up to an hour")
                 .contains("delivered by Resend")
+                .contains("Railway hosts the app and its database")
+                .contains("forwarded by Cloudflare to a Gmail mailbox hosted by Google")
+                .contains("Railway also logs each request to the app, with its IP address")
+                .contains("The app schedules no database backups")
+                .doesNotContain("Backups, if any")
                 .doesNotContainIgnoringCase("termly")
                 .doesNotContain("/cookie-policy");
     }

@@ -1,6 +1,8 @@
 name: CI
 on:
+  # Railway's "Wait for CI" needs a push trigger that names main; branch work uses revival/ names
   push:
+    branches: [main, 'revival/**']
   workflow_dispatch:
 
 jobs:
@@ -14,3 +16,10 @@ jobs:
           java-version: '21'
           cache: maven
       - run: ./mvnw -B verify
+
+  # the image Railway builds; a Dockerfile that no longer builds fails here, before Railway deploys
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: docker build --tag issue-overflow:ci .

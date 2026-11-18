@@ -1,0 +1,8 @@
+# Only the Maven wrapper, pom.xml and src/ go into the image build
+target/
+.git/
+.github/
+.idea/
+*.iml
+.vscode/
+.DS_Store
