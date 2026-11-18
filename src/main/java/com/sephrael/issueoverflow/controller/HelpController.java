@@ -18,6 +18,8 @@ import java.util.List;
 @Controller
 public class HelpController {
 
+    static final int MAX_SUBJECT_NAME_LENGTH = 100;
+
     @Autowired
     private UserRepository userRepository;
     @Autowired
@@ -58,7 +60,7 @@ public class HelpController {
     @PostMapping("/contact-us/send-message")
     public String sendMessage(@RequestParam("name") String name, @RequestParam("email") String email,
                               @RequestParam("message") String message, RedirectAttributes redirectAttributes) {
-        String subject = "Contact Us - Message from: " + name;
+        String subject = "Contact Us - Message from: " + subjectName(name);
 
         // the body is HTML and every field comes from an anonymous form: escape them before adding line breaks
         message = HtmlUtils.htmlEscape(message).replaceAll("(\r\n|\n)", "<br>");
@@ -77,5 +79,15 @@ public class HelpController {
             model.addAttribute("currentUser", userRepository.findByEmail(principal.getName()));
 
         return "help/privacy-policy";
+    }
+
+    // The sender's name on one line (control characters (line breaks included) become spaces) and at most
+    // MAX_SUBJECT_NAME_LENGTH characters, so the anonymous form can't add header lines or an oversized subject
+    static String subjectName(String name) {
+        String oneLine = name.replaceAll("\\p{Cntrl}", " ").strip();
+        if(oneLine.codePointCount(0, oneLine.length()) <= MAX_SUBJECT_NAME_LENGTH)
+            return oneLine;
+
+        return oneLine.substring(0, oneLine.offsetByCodePoints(0, MAX_SUBJECT_NAME_LENGTH));
     }
 }
